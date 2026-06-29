@@ -52,3 +52,13 @@ git merge theo/auth-sessions
 git push origin dev
 ```
 
+### Branch Protection
+- **Main branch is protected**
+    - Only a few people can push to main
+    - Protected by a required number of approvals in the Pull Request (4)
+
+- **Dev branch is protected**
+    - Protected by a required number of approvals in the Pull Request (2)
+
+- **Feature branches are not protected**
+    - With this in mind, you MUST respect the **Ownership Rule** and dont overwrite each other's branches without permission.
