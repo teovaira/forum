@@ -1,0 +1,10 @@
+# Environment Variables and Secrets
+.env
+*.key
+*.pem
+
+# Go Executables and Binaries
+*.exe
+*.bin
+*.out
+/coverage.txt
