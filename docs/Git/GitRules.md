@@ -62,3 +62,10 @@ git push origin dev
 
 - **Feature branches are not protected**
     - With this in mind, you MUST respect the **Ownership Rule** and dont overwrite each other's branches without permission.
+
+- **Commit Rules**
+    - Use conventional commits format.
+    - `<type>(<optional scope>): <description>`
+    
+    
+    
