@@ -5,6 +5,38 @@
 
 # Go Executables and Binaries
 *.exe
-*.bin
+*.exe~
+*.dll
+*.so
+*.dylib
+/server
+/forum
+/cmd/server/server
+
+# Go test/build artifacts
+*.test
 *.out
 /coverage.txt
+/coverage.html
+
+# Go workspace / vendor
+/vendor/
+go.work
+go.work.sum
+
+# SQLite database files (runtime data, not source)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+/forum.db
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swp~
+
+# OS files
+.DS_Store
+Thumbs.db
