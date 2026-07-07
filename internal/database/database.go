@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	_ "embed"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,4 +21,15 @@ func Connect(path string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+//go:embed schema.sql
+var schema string
+
+// Init creates the database schema. It is safe to call on every server
+// startup because schema.sql is written with idempotent statements
+// (CREATE TABLE IF NOT EXISTS, INSERT OR IGNORE).
+func Init(db *sql.DB) error {
+	_, err := db.Exec(schema)
+	return err
 }
