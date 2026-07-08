@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"database/sql"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -60,4 +63,92 @@ func TestCreateSession(t *testing.T) {
 	if tokenInDB != token2 {
 		t.Errorf("expected the surviving session to hold the second token, got %q", tokenInDB)
 	}
+}
+
+// seedUser inserts a minimal user row directly and returns its ID, so
+// session tests don't depend on the auth handlers (Stage B10) existing yet.
+func seedUser(t *testing.T, db *sql.DB) int64 {
+	t.Helper()
+	res, err := db.Exec(
+		"INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+		"tester", "tester@example.com", "not-a-real-hash", time.Now().Format(time.RFC3339),
+	)
+	if err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("failed to read last insert id: %v", err)
+	}
+	return id
+}
+
+func TestGetSessionUser(t *testing.T) {
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("Connect returned an error: %v", err)
+	}
+	defer db.Close()
+	if err := database.Init(db); err != nil {
+		t.Fatalf("Init returned an error: %v", err)
+	}
+
+	userID := seedUser(t, db)
+
+	t.Run("valid session returns the user", func(t *testing.T) {
+		token, _, err := CreateSession(db, userID)
+		if err != nil {
+			t.Fatalf("CreateSession returned an error: %v", err)
+		}
+
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+
+		user, err := GetSessionUser(db, r)
+		if err != nil {
+			t.Fatalf("GetSessionUser returned an error: %v", err)
+		}
+		if user == nil {
+			t.Fatal("expected a user, got nil")
+		}
+		if user.ID != userID {
+			t.Errorf("user.ID = %d, want %d", user.ID, userID)
+		}
+	})
+
+	t.Run("missing cookie returns no user, no error", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+		user, err := GetSessionUser(db, r)
+		if err != nil {
+			t.Fatalf("expected no error for a missing cookie, got: %v", err)
+		}
+		if user != nil {
+			t.Errorf("expected nil user for a missing cookie, got %+v", user)
+		}
+	})
+
+	t.Run("expired session returns no user, no error", func(t *testing.T) {
+		token, _, err := CreateSession(db, userID)
+		if err != nil {
+			t.Fatalf("CreateSession returned an error: %v", err)
+		}
+		// Force this session into the past directly, bypassing CreateSession's
+		// fixed 2h duration, so the test can assert expiry is enforced.
+		past := time.Now().Add(-time.Hour).Format(time.RFC3339)
+		if _, err := db.Exec("UPDATE sessions SET expires_at = ? WHERE token = ?", past, token); err != nil {
+			t.Fatalf("failed to backdate session: %v", err)
+		}
+
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+
+		user, err := GetSessionUser(db, r)
+		if err != nil {
+			t.Fatalf("expected no error for an expired session, got: %v", err)
+		}
+		if user != nil {
+			t.Errorf("expected nil user for an expired session, got %+v", user)
+		}
+	})
 }
