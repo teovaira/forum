@@ -78,3 +78,11 @@ func GetSessionUser(db *sql.DB, r *http.Request) (*models.User, error) {
 
 	return &user, nil
 }
+
+// DestroySession deletes the session row for token. It is not an error to
+// destroy a token that no longer exists — logout must be safe to call even
+// if the session already expired or was cleared some other way.
+func DestroySession(db *sql.DB, token string) error {
+	_, err := db.Exec("DELETE FROM sessions WHERE token = ?", token)
+	return err
+}
