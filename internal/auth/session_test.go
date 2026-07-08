@@ -152,3 +152,41 @@ func TestGetSessionUser(t *testing.T) {
 		}
 	})
 }
+
+func TestDestroySession(t *testing.T) {
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("Connect returned an error: %v", err)
+	}
+	defer db.Close()
+	if err := database.Init(db); err != nil {
+		t.Fatalf("Init returned an error: %v", err)
+	}
+
+	userID := seedUser(t, db)
+	token, _, err := CreateSession(db, userID)
+	if err != nil {
+		t.Fatalf("CreateSession returned an error: %v", err)
+	}
+
+	if err := DestroySession(db, token); err != nil {
+		t.Fatalf("DestroySession returned an error: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+
+	user, err := GetSessionUser(db, r)
+	if err != nil {
+		t.Fatalf("GetSessionUser returned an error: %v", err)
+	}
+	if user != nil {
+		t.Errorf("expected nil user after DestroySession, got %+v", user)
+	}
+
+	// Destroying a token that no longer exists must not be an error —
+	// logout is idempotent.
+	if err := DestroySession(db, token); err != nil {
+		t.Errorf("destroying an already-destroyed token should not error, got: %v", err)
+	}
+}
