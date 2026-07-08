@@ -14,3 +14,12 @@ func HashPassword(password string) (string, error) {
 	}
 	return string(hash), nil
 }
+
+// CheckPassword reports whether password matches hash. It collapses
+// bcrypt's error into a bool because every failure mode (wrong password,
+// malformed hash) means the same thing to a caller: authentication did not
+// succeed — the login handler never needs to know or leak which.
+func CheckPassword(hash, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
