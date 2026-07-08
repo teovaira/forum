@@ -63,3 +63,59 @@ func TestWithUser(t *testing.T) {
 		}
 	})
 }
+
+func TestRequireAuth(t *testing.T) {
+	t.Run("user in context passes through", func(t *testing.T) {
+		var called bool
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+		})
+
+		db, err := database.Connect(":memory:")
+		if err != nil {
+			t.Fatalf("Connect returned an error: %v", err)
+		}
+		defer db.Close()
+		if err := database.Init(db); err != nil {
+			t.Fatalf("Init returned an error: %v", err)
+		}
+		userID := seedUser(t, db)
+		token, _, err := CreateSession(db, userID)
+		if err != nil {
+			t.Fatalf("CreateSession returned an error: %v", err)
+		}
+
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+		w := httptest.NewRecorder()
+
+		// RequireAuth only checks context; WithUser is what populates it.
+		WithUser(db)(RequireAuth(next)).ServeHTTP(w, r)
+
+		if !called {
+			t.Error("expected RequireAuth to call next when a user is present")
+		}
+	})
+
+	t.Run("no user in context is blocked with a clean status", func(t *testing.T) {
+		var called bool
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+		})
+
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		w := httptest.NewRecorder()
+
+		RequireAuth(next).ServeHTTP(w, r)
+
+		if called {
+			t.Error("expected RequireAuth to block the request, but next was called")
+		}
+
+		// "Clean" means a real status was written, not the zero value that
+		// results from nothing ever calling WriteHeader/Write.
+		if w.Code == 0 || w.Code == http.StatusOK {
+			t.Errorf("expected a non-200 status to be written, got %d", w.Code)
+		}
+	})
+}
