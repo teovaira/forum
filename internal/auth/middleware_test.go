@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"forum/internal/database"
+	"forum/internal/models"
 )
 
 func TestWithUser(t *testing.T) {
@@ -116,6 +118,33 @@ func TestRequireAuth(t *testing.T) {
 		// results from nothing ever calling WriteHeader/Write.
 		if w.Code == 0 || w.Code == http.StatusOK {
 			t.Errorf("expected a non-200 status to be written, got %d", w.Code)
+		}
+	})
+}
+
+func TestUserFromContext(t *testing.T) {
+	t.Run("returns the stored user", func(t *testing.T) {
+		want := &models.User{ID: 42, Username: "tester"}
+		ctx := context.WithValue(context.Background(), userContextKey, want)
+
+		got, ok := UserFromContext(ctx)
+
+		if !ok {
+			t.Fatal("expected ok = true for a context with a user stored")
+		}
+		if got != want {
+			t.Errorf("got %+v, want %+v", got, want)
+		}
+	})
+
+	t.Run("empty context returns nil, false", func(t *testing.T) {
+		user, ok := UserFromContext(context.Background())
+
+		if ok {
+			t.Error("expected ok = false for an empty context")
+		}
+		if user != nil {
+			t.Errorf("expected a nil user, got %+v", user)
 		}
 	})
 }
