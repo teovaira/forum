@@ -245,6 +245,32 @@ func TestLogoutHandler(t *testing.T) {
 	}
 }
 
+func TestLogoutHandlerWithNoSession(t *testing.T) {
+	// A guest (no session_token cookie at all) hitting /logout directly
+	// must not panic or error — it should behave the same as logging out
+	// an already-expired session: clear the cookie and redirect.
+	db := newTestDB(t)
+
+	r := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	w := httptest.NewRecorder()
+
+	LogoutHandler(db)(w, r)
+
+	if w.Code == http.StatusInternalServerError {
+		t.Fatalf("logout with no session should not 500, body: %s", w.Body.String())
+	}
+
+	var clearedCookie bool
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "session_token" && (c.MaxAge < 0 || c.Value == "") {
+			clearedCookie = true
+		}
+	}
+	if !clearedCookie {
+		t.Error("expected the session_token cookie to still be cleared even with no prior session")
+	}
+}
+
 func TestRegisterRoutes(t *testing.T) {
 	db := newTestDB(t)
 	mux := http.NewServeMux()
