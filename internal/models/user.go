@@ -1,3 +1,5 @@
+// Package models holds the plain data types shared across the forum's
+// packages. Types here carry fields only — no methods, no database access.
 package models
 
 import "time"

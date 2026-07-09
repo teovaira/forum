@@ -24,6 +24,10 @@ type AuthPageData struct {
 // Secure flag — so setSessionCookie and clearSessionCookie only need to
 // fill in what actually differs between "set" and "clear" (Value/Expires
 // vs. MaxAge), instead of each repeating the full attribute list.
+//
+// Returns:
+//   - *http.Cookie: a cookie with Name/Path/HttpOnly/Secure/SameSite set;
+//     Value/Expires/MaxAge are left for the caller to fill in.
 func baseSessionCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     sessionCookieName,
@@ -38,6 +42,11 @@ func baseSessionCookie() *http.Cookie {
 // frozen in §4.7: HttpOnly and SameSite=Strict always on (they don't depend
 // on transport), Secure only when SECURE_COOKIES is set (a Secure cookie is
 // silently dropped over plain HTTP, which would break local/audit testing).
+//
+// Parameters:
+//   - w: the response writer to attach the Set-Cookie header to.
+//   - token: the session token, as returned by CreateSession.
+//   - expiresAt: when the cookie (and the session it names) expires.
 func setSessionCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
 	cookie := baseSessionCookie()
 	cookie.Value = token
@@ -47,6 +56,9 @@ func setSessionCookie(w http.ResponseWriter, token string, expiresAt time.Time) 
 
 // clearSessionCookie tells the browser to delete the session_token cookie
 // immediately, via the standard "MaxAge < 0" convention.
+//
+// Parameters:
+//   - w: the response writer to attach the Set-Cookie header to.
 func clearSessionCookie(w http.ResponseWriter) {
 	cookie := baseSessionCookie()
 	cookie.MaxAge = -1
@@ -57,6 +69,12 @@ func clearSessionCookie(w http.ResponseWriter) {
 // fields are rejected server-side (empty/whitespace-only), and a duplicate
 // email/username is turned into a friendly message instead of leaking the
 // database's raw UNIQUE constraint error to the client.
+//
+// Parameters:
+//   - db: an open connection pool.
+//
+// Returns:
+//   - http.HandlerFunc: the handler for POST /register.
 func RegisterHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
@@ -116,6 +134,12 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 // isUniqueConstraintError reports whether err came from SQLite's UNIQUE
 // constraint (duplicate email or username) rather than some other failure,
 // so callers can show a friendly message instead of a generic one.
+//
+// Parameters:
+//   - err: the error returned by a db.Exec/db.QueryRow call.
+//
+// Returns:
+//   - bool: true if err's message indicates a UNIQUE constraint violation.
 func isUniqueConstraintError(err error) bool {
 	return strings.Contains(strings.ToUpper(err.Error()), "UNIQUE CONSTRAINT")
 }
@@ -129,6 +153,9 @@ const genericLoginError = "Invalid email or password."
 // message. LoginHandler has three separate failure paths (empty fields,
 // unknown email, wrong password) that must all respond identically — this
 // keeps that single response in one place instead of three.
+//
+// Parameters:
+//   - w: the response writer to render login.html into.
 func renderLoginError(w http.ResponseWriter) {
 	webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
 }
@@ -137,6 +164,12 @@ func renderLoginError(w http.ResponseWriter) {
 // session on success. Every failure path returns the same generic message
 // (audit: submitting the form with no credentials must show a warning, not
 // a raw error or a silent no-op).
+//
+// Parameters:
+//   - db: an open connection pool.
+//
+// Returns:
+//   - http.HandlerFunc: the handler for POST /login.
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
@@ -188,6 +221,12 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 // logged server-side but never blocks the redirect: the user's cookie is
 // cleared either way, so their browser is logged out even if the stale row
 // briefly lingers in the database.
+//
+// Parameters:
+//   - db: an open connection pool.
+//
+// Returns:
+//   - http.HandlerFunc: the handler for POST /logout.
 func LogoutHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cookie, err := r.Cookie(sessionCookieName); err == nil {
@@ -204,6 +243,11 @@ func LogoutHandler(db *sql.DB) http.HandlerFunc {
 // Method-aware patterns ("GET /path", "POST /path") make http.ServeMux
 // return 405 on a method mismatch automatically, instead of every handler
 // needing its own r.Method check.
+//
+// Parameters:
+//   - mux: the server's route multiplexer to register handlers on.
+//   - db: an open connection pool, passed through to every handler that
+//     needs one.
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	mux.HandleFunc("GET /register", RegisterFormHandler)
 	mux.HandleFunc("POST /register", RegisterHandler(db))
@@ -213,11 +257,19 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 }
 
 // RegisterFormHandler renders the empty registration form for GET /register.
+//
+// Parameters:
+//   - w: the response writer to render register.html into.
+//   - r: the incoming request (unused; the form has no state to read).
 func RegisterFormHandler(w http.ResponseWriter, r *http.Request) {
 	webutil.RenderTemplate(w, "register.html", AuthPageData{})
 }
 
 // LoginFormHandler renders the empty login form for GET /login.
+//
+// Parameters:
+//   - w: the response writer to render login.html into.
+//   - r: the incoming request (unused; the form has no state to read).
 func LoginFormHandler(w http.ResponseWriter, r *http.Request) {
 	webutil.RenderTemplate(w, "login.html", AuthPageData{})
 }
