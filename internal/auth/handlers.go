@@ -18,34 +18,38 @@ type AuthPageData struct {
 	ErrorMessage string
 }
 
+// baseSessionCookie returns a Cookie pre-filled with the attributes frozen
+// in §4.7 — Name, Path, HttpOnly, SameSite=Strict, and the conditional
+// Secure flag — so setSessionCookie and clearSessionCookie only need to
+// fill in what actually differs between "set" and "clear" (Value/Expires
+// vs. MaxAge), instead of each repeating the full attribute list.
+func baseSessionCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     sessionCookieName,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   os.Getenv("SECURE_COOKIES") == "true",
+		SameSite: http.SameSiteStrictMode,
+	}
+}
+
 // setSessionCookie writes the session_token cookie with the attributes
 // frozen in §4.7: HttpOnly and SameSite=Strict always on (they don't depend
 // on transport), Secure only when SECURE_COOKIES is set (a Secure cookie is
 // silently dropped over plain HTTP, which would break local/audit testing).
 func setSessionCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    token,
-		Path:     "/",
-		Expires:  expiresAt,
-		HttpOnly: true,
-		Secure:   os.Getenv("SECURE_COOKIES") == "true",
-		SameSite: http.SameSiteStrictMode,
-	})
+	cookie := baseSessionCookie()
+	cookie.Value = token
+	cookie.Expires = expiresAt
+	http.SetCookie(w, cookie)
 }
 
 // clearSessionCookie tells the browser to delete the session_token cookie
 // immediately, via the standard "MaxAge < 0" convention.
 func clearSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   os.Getenv("SECURE_COOKIES") == "true",
-		SameSite: http.SameSiteStrictMode,
-	})
+	cookie := baseSessionCookie()
+	cookie.MaxAge = -1
+	http.SetCookie(w, cookie)
 }
 
 // RegisterHandler creates a new user and immediately logs them in. Required
