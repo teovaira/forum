@@ -34,6 +34,20 @@ func setSessionCookie(w http.ResponseWriter, token string, expiresAt time.Time) 
 	})
 }
 
+// clearSessionCookie tells the browser to delete the session_token cookie
+// immediately, via the standard "MaxAge < 0" convention.
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   os.Getenv("SECURE_COOKIES") == "true",
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
 // RegisterHandler creates a new user and immediately logs them in. Required
 // fields are rejected server-side (empty/whitespace-only), and a duplicate
 // email/username is turned into a friendly message instead of leaking the
@@ -152,4 +166,40 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		setSessionCookie(w, token, expiresAt)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
+}
+
+// LogoutHandler destroys the caller's session, if any, and clears the
+// cookie. It is safe to call with no session at all — DestroySession is
+// idempotent — so logout never errors just because the user was already
+// logged out.
+func LogoutHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie(sessionCookieName); err == nil {
+			DestroySession(db, cookie.Value)
+		}
+		clearSessionCookie(w)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+// RegisterRoutes wires the auth package's routes into mux, per §4.5.
+// Method-aware patterns ("GET /path", "POST /path") make http.ServeMux
+// return 405 on a method mismatch automatically, instead of every handler
+// needing its own r.Method check.
+func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
+	mux.HandleFunc("GET /register", RegisterFormHandler)
+	mux.HandleFunc("POST /register", RegisterHandler(db))
+	mux.HandleFunc("GET /login", LoginFormHandler)
+	mux.HandleFunc("POST /login", LoginHandler(db))
+	mux.HandleFunc("POST /logout", LogoutHandler(db))
+}
+
+// RegisterFormHandler renders the empty registration form for GET /register.
+func RegisterFormHandler(w http.ResponseWriter, r *http.Request) {
+	webutil.RenderTemplate(w, "register.html", AuthPageData{})
+}
+
+// LoginFormHandler renders the empty login form for GET /login.
+func LoginFormHandler(w http.ResponseWriter, r *http.Request) {
+	webutil.RenderTemplate(w, "login.html", AuthPageData{})
 }
