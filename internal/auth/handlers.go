@@ -124,6 +124,14 @@ func isUniqueConstraintError(err error) bool {
 // response never reveals whether a given email is registered at all.
 const genericLoginError = "Invalid email or password."
 
+// renderLoginError re-renders login.html with the generic login failure
+// message. LoginHandler has three separate failure paths (empty fields,
+// unknown email, wrong password) that must all respond identically — this
+// keeps that single response in one place instead of three.
+func renderLoginError(w http.ResponseWriter) {
+	webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+}
+
 // LoginHandler authenticates a user by email and password and starts a new
 // session on success. Every failure path returns the same generic message
 // (audit: submitting the form with no credentials must show a warning, not
@@ -139,7 +147,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		password := r.FormValue("password")
 
 		if email == "" || strings.TrimSpace(password) == "" {
-			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			renderLoginError(w)
 			return
 		}
 
@@ -148,7 +156,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			"SELECT id, password_hash FROM users WHERE email = ?", email,
 		).Scan(&user.ID, &user.PasswordHash)
 		if err == sql.ErrNoRows {
-			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			renderLoginError(w)
 			return
 		}
 		if err != nil {
@@ -157,7 +165,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if !CheckPassword(user.PasswordHash, password) {
-			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			renderLoginError(w)
 			return
 		}
 
