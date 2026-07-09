@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -183,11 +184,16 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 // LogoutHandler destroys the caller's session, if any, and clears the
 // cookie. It is safe to call with no session at all — DestroySession is
 // idempotent — so logout never errors just because the user was already
-// logged out.
+// logged out. A real database failure while destroying the session is
+// logged server-side but never blocks the redirect: the user's cookie is
+// cleared either way, so their browser is logged out even if the stale row
+// briefly lingers in the database.
 func LogoutHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cookie, err := r.Cookie(sessionCookieName); err == nil {
-			DestroySession(db, cookie.Value)
+			if err := DestroySession(db, cookie.Value); err != nil {
+				log.Printf("auth: DestroySession failed: %v", err)
+			}
 		}
 		clearSessionCookie(w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
