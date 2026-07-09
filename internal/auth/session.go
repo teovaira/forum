@@ -16,6 +16,14 @@ const sessionDuration = 2 * time.Hour
 // sessionCookieName is the cookie that carries the session token, per §4.7.
 const sessionCookieName = "session_token"
 
+// nowString formats the current time as the ISO-8601 TEXT this package
+// stores in every timestamp column (§4.1). Centralizing it means every
+// INSERT agrees on the same layout, instead of each call site formatting
+// "now" independently and risking drift if the layout ever changes.
+func nowString() string {
+	return time.Now().Format(time.RFC3339)
+}
+
 // CreateSession issues a new session for userID, replacing any session that
 // user already holds. The sessions.user_id column is UNIQUE (schema.sql),
 // so a plain INSERT would fail on a second login; deleting the old row
@@ -31,7 +39,7 @@ func CreateSession(db *sql.DB, userID int64) (token string, expiresAt time.Time,
 
 	_, err = db.Exec(
 		"INSERT INTO sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
-		token, userID, expiresAt.Format(time.RFC3339), time.Now().Format(time.RFC3339),
+		token, userID, expiresAt.Format(time.RFC3339), nowString(),
 	)
 	if err != nil {
 		return "", time.Time{}, err
@@ -56,7 +64,7 @@ func GetSessionUser(db *sql.DB, r *http.Request) (*models.User, error) {
 		FROM sessions
 		JOIN users ON users.id = sessions.user_id
 		WHERE sessions.token = ? AND sessions.expires_at > ?`,
-		cookie.Value, time.Now().Format(time.RFC3339),
+		cookie.Value, nowString(),
 	)
 
 	var (

@@ -82,7 +82,7 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 
 		result, err := db.Exec(
 			"INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-			username, email, hash, time.Now().Format(time.RFC3339),
+			username, email, hash, nowString(),
 		)
 		if err != nil {
 			if isUniqueConstraintError(err) {
