@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 
 	"forum/internal/models"
@@ -24,11 +25,16 @@ const userContextKey contextKey = 0
 // valid, stores the user in the request context for downstream handlers.
 // It never blocks the request — a guest (no or invalid session) still
 // reaches next with no user in context; only RequireAuth enforces login.
+// A genuine lookup failure (as opposed to "no session") is logged
+// server-side so a database problem doesn't silently masquerade as every
+// user being logged out.
 func WithUser(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, err := GetSessionUser(db, r)
-			if err == nil && user != nil {
+			if err != nil {
+				log.Printf("auth: GetSessionUser failed: %v", err)
+			} else if user != nil {
 				ctx := context.WithValue(r.Context(), userContextKey, user)
 				r = r.WithContext(ctx)
 			}
