@@ -203,3 +203,82 @@ func TestLoginHandler(t *testing.T) {
 		}
 	})
 }
+
+func TestLogoutHandler(t *testing.T) {
+	db := newTestDB(t)
+	form := url.Values{"email": {"logout@example.com"}, "username": {"someone"}, "password": {"hunter2hunter2"}}
+	regW := httptest.NewRecorder()
+	RegisterHandler(db)(regW, newFormRequest("/register", form))
+
+	var token string
+	for _, c := range regW.Result().Cookies() {
+		if c.Name == "session_token" {
+			token = c.Value
+		}
+	}
+	if token == "" {
+		t.Fatal("setup failed: no session_token cookie after registration")
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	r.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+	w := httptest.NewRecorder()
+
+	LogoutHandler(db)(w, r)
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM sessions WHERE token = ?", token).Scan(&count); err != nil {
+		t.Fatalf("failed to count sessions: %v", err)
+	}
+	if count != 0 {
+		t.Error("expected the session row to be deleted after logout")
+	}
+
+	var clearedCookie bool
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "session_token" && (c.MaxAge < 0 || c.Value == "") {
+			clearedCookie = true
+		}
+	}
+	if !clearedCookie {
+		t.Error("expected the session_token cookie to be cleared on logout")
+	}
+}
+
+func TestRegisterRoutes(t *testing.T) {
+	db := newTestDB(t)
+	mux := http.NewServeMux()
+
+	RegisterRoutes(mux, db)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/register"},
+		{http.MethodPost, "/register"},
+		{http.MethodGet, "/login"},
+		{http.MethodPost, "/login"},
+		{http.MethodPost, "/logout"},
+	}
+
+	for _, c := range cases {
+		r := httptest.NewRequest(c.method, c.path, nil)
+		w := httptest.NewRecorder()
+
+		mux.ServeHTTP(w, r)
+
+		if w.Code == http.StatusNotFound {
+			t.Errorf("%s %s: route not registered (404)", c.method, c.path)
+		}
+	}
+
+	// A method the pattern doesn't allow must 405, not fall through to a
+	// handler (audit: "does the server use the right HTTP method?").
+	r := httptest.NewRequest(http.MethodDelete, "/register", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("DELETE /register: got status %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	}
+}
