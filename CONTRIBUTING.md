@@ -95,19 +95,6 @@ every prepared `*sql.Stmt` gets `defer stmt.Close()`. The single `*sql.DB` handl
 - New shared names (types, function signatures, API routes, form fields) must be proposed, agreed
   upon, and added to ROADMAP §4 before anyone implements against them.
 
-## Architectural Decisions
-
-Record non-obvious technical reasoning in `ai_changelog.md` at the repo root:
-
-```markdown
-## YYYY-MM-DD — <name>
-Decision: <What was decided>
-Reason: <Why this approach was taken>
-```
-
-Each entry must be committed in the exact same commit as the code implementing it — never as a
-standalone changelog-only commit.
-
 ## Before Opening a Pull Request
 
 - [ ] `go fmt ./... && go vet ./... && go test ./... -v -cover -race` passes
