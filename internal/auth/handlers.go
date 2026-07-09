@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"forum/internal/models"
 	"forum/internal/webutil"
 )
 
@@ -98,4 +99,57 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 // so callers can show a friendly message instead of a generic one.
 func isUniqueConstraintError(err error) bool {
 	return strings.Contains(strings.ToUpper(err.Error()), "UNIQUE CONSTRAINT")
+}
+
+// genericLoginError is shown for every login failure — wrong password,
+// unknown email, or an empty field all produce the same message, so the
+// response never reveals whether a given email is registered at all.
+const genericLoginError = "Invalid email or password."
+
+// LoginHandler authenticates a user by email and password and starts a new
+// session on success. Every failure path returns the same generic message
+// (audit: submitting the form with no credentials must show a warning, not
+// a raw error or a silent no-op).
+func LoginHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			webutil.RenderError(w, http.StatusBadRequest, "Invalid form submission.")
+			return
+		}
+
+		email := strings.TrimSpace(r.FormValue("email"))
+		password := r.FormValue("password")
+
+		if email == "" || strings.TrimSpace(password) == "" {
+			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			return
+		}
+
+		var user models.User
+		err := db.QueryRow(
+			"SELECT id, password_hash FROM users WHERE email = ?", email,
+		).Scan(&user.ID, &user.PasswordHash)
+		if err == sql.ErrNoRows {
+			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			return
+		}
+		if err != nil {
+			webutil.RenderError(w, http.StatusInternalServerError, "Could not log you in.")
+			return
+		}
+
+		if !CheckPassword(user.PasswordHash, password) {
+			webutil.RenderTemplate(w, "login.html", AuthPageData{ErrorMessage: genericLoginError})
+			return
+		}
+
+		token, expiresAt, err := CreateSession(db, user.ID)
+		if err != nil {
+			webutil.RenderError(w, http.StatusInternalServerError, "Could not log you in.")
+			return
+		}
+
+		setSessionCookie(w, token, expiresAt)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
 }
