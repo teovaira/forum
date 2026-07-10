@@ -5,7 +5,9 @@ package webutil
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 )
 
@@ -34,4 +36,32 @@ func RenderTemplate(w http.ResponseWriter, name string, data any) error {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+// ErrorPageData is the view-data passed to error.html.
+type ErrorPageData struct {
+	StatusCode int
+	Message    string
+}
+
+// RenderError writes statusCode and renders error.html with message. It
+// renders into a buffer before writing anything, so if error.html itself
+// fails to execute, the response falls back to a plain-text body instead of
+// silently sending nothing — an error path is the one place a rendering
+// failure must never go unnoticed.
+func RenderError(w http.ResponseWriter, statusCode int, message string) {
+	data := ErrorPageData{StatusCode: statusCode, Message: message}
+
+	var buf bytes.Buffer
+	if err := templates.ExecuteTemplate(&buf, "error.html", data); err != nil {
+		log.Printf("webutil: failed to render error.html: %v", err)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(statusCode)
+		fmt.Fprintf(w, "%d %s", statusCode, message)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(statusCode)
+	buf.WriteTo(w)
 }
