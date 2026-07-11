@@ -2,11 +2,14 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/mattn/go-sqlite3"
 
 	"forum/internal/database"
 )
@@ -306,5 +309,34 @@ func TestRegisterRoutes(t *testing.T) {
 	mux.ServeHTTP(w, r)
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("DELETE /register: got status %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	}
+}
+
+func TestIsUniqueConstraintError(t *testing.T) {
+	uniqueErr := sqlite3.Error{
+		Code:         sqlite3.ErrConstraint,
+		ExtendedCode: sqlite3.ErrConstraintUnique,
+	}
+	if !isUniqueConstraintError(uniqueErr) {
+		t.Error("expected true for a sqlite3 UNIQUE constraint error")
+	}
+
+	otherSQLiteErr := sqlite3.Error{
+		Code:         sqlite3.ErrConstraint,
+		ExtendedCode: sqlite3.ErrConstraintNotNull,
+	}
+	if isUniqueConstraintError(otherSQLiteErr) {
+		t.Error("expected false for a non-UNIQUE sqlite3 constraint error")
+	}
+
+	// A plain error whose text merely contains the words must be judged by
+	// type, not by string matching — this is the case the old string-based
+	// check got wrong.
+	if isUniqueConstraintError(errors.New("unique constraint failed: users.email")) {
+		t.Error("expected false for a non-sqlite3 error, even if its text mentions the words")
+	}
+
+	if isUniqueConstraintError(nil) {
+		t.Error("expected false for a nil error")
 	}
 }
