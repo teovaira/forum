@@ -2,11 +2,14 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mattn/go-sqlite3"
 
 	"forum/internal/models"
 	"forum/internal/webutil"
@@ -133,15 +136,19 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 
 // isUniqueConstraintError reports whether err came from SQLite's UNIQUE
 // constraint (duplicate email or username) rather than some other failure,
-// so callers can show a friendly message instead of a generic one.
+// so callers can show a friendly message instead of a generic one. It
+// inspects the driver's typed error code rather than matching on the error
+// message text, so a future change to the driver's wording cannot silently
+// break duplicate-account detection.
 //
 // Parameters:
 //   - err: the error returned by a db.Exec/db.QueryRow call.
 //
 // Returns:
-//   - bool: true if err's message indicates a UNIQUE constraint violation.
+//   - bool: true if err is a SQLite UNIQUE constraint violation.
 func isUniqueConstraintError(err error) bool {
-	return strings.Contains(strings.ToUpper(err.Error()), "UNIQUE CONSTRAINT")
+	var sqliteErr sqlite3.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique
 }
 
 // genericLoginError is shown for every login failure — wrong password,
