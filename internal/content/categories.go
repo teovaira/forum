@@ -26,3 +26,25 @@ func ListCategories(db *sql.DB) ([]models.Category, error) {
 	}
 	return categories, nil
 }
+
+func PostIDsInCategory(db *sql.DB, categoryID int64) ([]int64, error) {
+	var postIDs []int64
+	rows, err := db.Query("SELECT post_id FROM post_categories WHERE category_id=?", categoryID)
+	if err != nil {
+		return postIDs, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var postID int64
+		err = rows.Scan(&postID)
+		if err != nil {
+			return postIDs, err
+		}
+		postIDs = append(postIDs, postID)
+	}
+	if err = rows.Err(); err != nil {
+		return postIDs, err
+
+	}
+	return postIDs, nil
+}
