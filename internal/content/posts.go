@@ -91,6 +91,73 @@ func CreatePost(db *sql.DB, userID int64, title, body string, categoryIDs []int6
 }
 
 // GetPost retrieves a single post by ID.
+//
+// It joins the posts table with the users table to fetch the author's username,
+// loads the post's categories, and queries its reactions count using the
+// CountReactions helper.
+//
+// Parameters:
+//   - db: An open SQLite database connection.
+//   - postID: The ID of the post to retrieve.
+//
+// Returns:
+//   - The Post matching the ID, or nil if not found.
+//   - sql.ErrNoRows if no post matches postID, or a database error on failure.
 func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
-	return nil, errors.New("not implemented")
+	var post models.Post
+	var createdAtStr string
+
+	err := db.QueryRow(
+		`SELECT p.id, p.user_id, u.username, p.title, p.body, p.created_at
+		 FROM posts p
+		 JOIN users u ON p.user_id = u.id
+		 WHERE p.id = ?`,
+		postID,
+	).Scan(&post.ID, &post.UserID, &post.Author, &post.Title, &post.Body, &createdAtStr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	post.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch categories
+	rows, err := db.Query(
+		`SELECT c.id, c.name, c.kind
+		 FROM post_categories pc
+		 JOIN categories c ON pc.category_id = c.id
+		 WHERE pc.post_id = ?`,
+		postID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cat models.Category
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Kind); err != nil {
+			return nil, err
+		}
+		post.Categories = append(post.Categories, cat)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Fetch reactions
+	reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
+	if err != nil {
+		return nil, err
+	}
+
+	if counts, ok := reactionMap[postID]; ok {
+		post.Likes = counts.Likes
+		post.Dislikes = counts.Dislikes
+	}
+
+	return &post, nil
 }
