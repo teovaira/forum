@@ -45,3 +45,21 @@ func TestRegisterRoutesMissingFile(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
+
+func TestRegisterRoutesMethodNotAllowed(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "style.css"), []byte("body{color:red}"), 0o644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, dir)
+
+	req := httptest.NewRequest(http.MethodPost, "/static/style.css", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	}
+}
