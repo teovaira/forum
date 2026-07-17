@@ -175,3 +175,90 @@ func TestGetPost(t *testing.T) {
 		}
 	})
 }
+
+func TestListPosts(t *testing.T) {
+	db := newCategoryTestDB(t)
+	userID1 := insertUser(t, db, "user1")
+	userID2 := insertUser(t, db, "user2")
+
+	categoryID1 := insertCategory(t, db, "Action", "genre")
+	categoryID2 := insertCategory(t, db, "Romance", "genre")
+
+	// Create posts
+	postID1, err := CreatePost(db, userID1, "Post 1", "Body 1", []int64{categoryID1})
+	if err != nil {
+		t.Fatalf("failed to create post 1: %v", err)
+	}
+
+	postID2, err := CreatePost(db, userID2, "Post 2", "Body 2", []int64{categoryID2})
+	if err != nil {
+		t.Fatalf("failed to create post 2: %v", err)
+	}
+
+	postID3, err := CreatePost(db, userID1, "Post 3", "Body 3", []int64{categoryID1, categoryID2})
+	if err != nil {
+		t.Fatalf("failed to create post 3: %v", err)
+	}
+
+	t.Run("lists all posts sorted by creation desc", func(t *testing.T) {
+		posts, err := ListPosts(db, PostFilter{})
+		if err != nil {
+			t.Fatalf("ListPosts() error = %v", err)
+		}
+
+		if len(posts) != 3 {
+			t.Fatalf("ListPosts() returned %d posts, want 3", len(posts))
+		}
+
+		// Check order (newest first, which is post3, then post2, then post1)
+		if posts[0].ID != postID3 || posts[1].ID != postID2 || posts[2].ID != postID1 {
+			t.Errorf("ListPosts() order = [%d, %d, %d], want [%d, %d, %d]",
+				posts[0].ID, posts[1].ID, posts[2].ID, postID3, postID2, postID1)
+		}
+	})
+
+	t.Run("filters by category", func(t *testing.T) {
+		posts, err := ListPosts(db, PostFilter{CategoryID: &categoryID1})
+		if err != nil {
+			t.Fatalf("ListPosts() error = %v", err)
+		}
+
+		if len(posts) != 2 {
+			t.Fatalf("ListPosts() filtered by category returned %d posts, want 2", len(posts))
+		}
+
+		// Should be postID3 and postID1
+		if posts[0].ID != postID3 || posts[1].ID != postID1 {
+			t.Errorf("ListPosts() by category = [%d, %d], want [%d, %d]",
+				posts[0].ID, posts[1].ID, postID3, postID1)
+		}
+	})
+
+	t.Run("filters by author", func(t *testing.T) {
+		posts, err := ListPosts(db, PostFilter{CreatedByUserID: &userID1})
+		if err != nil {
+			t.Fatalf("ListPosts() error = %v", err)
+		}
+
+		if len(posts) != 2 {
+			t.Fatalf("ListPosts() filtered by author returned %d posts, want 2", len(posts))
+		}
+
+		// Should be postID3 and postID1
+		if posts[0].ID != postID3 || posts[1].ID != postID1 {
+			t.Errorf("ListPosts() by author = [%d, %d], want [%d, %d]",
+				posts[0].ID, posts[1].ID, postID3, postID1)
+		}
+	})
+
+	t.Run("filters by liked posts (when none are liked)", func(t *testing.T) {
+		posts, err := ListPosts(db, PostFilter{LikedByUserID: &userID1})
+		if err != nil {
+			t.Fatalf("ListPosts() error = %v", err)
+		}
+
+		if len(posts) != 0 {
+			t.Errorf("ListPosts() filtered by liked returned %d posts, want 0", len(posts))
+		}
+	})
+}

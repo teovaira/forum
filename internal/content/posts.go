@@ -161,3 +161,8 @@ func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
 
 	return &post, nil
 }
+
+// ListPosts retrieves a list of posts matching the filter.
+func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
+	return nil, errors.New("not implemented")
+}
