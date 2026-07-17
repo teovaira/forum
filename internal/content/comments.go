@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"forum/internal/models"
 )
 
 // CreateComment creates a new comment on a post.
@@ -46,4 +48,9 @@ func CreateComment(db *sql.DB, postID, userID int64, body string) (int64, error)
 	}
 
 	return commentID, nil
+}
+
+// ListComments retrieves all comments for a post.
+func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
+	return nil, errors.New("not implemented")
 }
