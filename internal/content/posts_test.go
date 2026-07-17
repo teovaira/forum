@@ -41,6 +41,14 @@ CREATE TABLE post_categories (
 	PRIMARY KEY (post_id, category_id)
 );
 
+CREATE TABLE comments (
+	id         INTEGER PRIMARY KEY,
+	post_id    INTEGER NOT NULL REFERENCES posts(id),
+	user_id    INTEGER NOT NULL REFERENCES users(id),
+	body       TEXT NOT NULL,
+	created_at TEXT NOT NULL
+);
+
 CREATE TABLE reactions (
 	id          INTEGER PRIMARY KEY,
 	user_id     INTEGER NOT NULL REFERENCES users(id),
