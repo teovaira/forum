@@ -20,9 +20,9 @@ func TestMain(m *testing.M) {
 	// Initialize a dummy template set in webutil to prevent nil panics during content handler tests
 	webutil.SetTemplates(template.Must(template.New("test").Parse(
 		`{{define "home.html"}}home: {{len .Posts}} posts, ActiveFilter: {{.ActiveFilter}}{{end}}` +
-		`{{define "post.html"}}post: {{.Post.Title}} - {{.ErrorMessage}}{{end}}` +
-		`{{define "new_post.html"}}new_post: {{.ErrorMessage}}{{end}}` +
-		`{{define "error.html"}}error: {{.Message}}{{end}}`,
+			`{{define "post.html"}}post: {{.Post.Title}} - {{.ErrorMessage}}{{end}}` +
+			`{{define "new_post.html"}}new_post: {{.ErrorMessage}}{{end}}` +
+			`{{define "error.html"}}error: {{.Message}}{{end}}`,
 	)))
 	os.Exit(m.Run())
 }
