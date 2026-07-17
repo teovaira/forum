@@ -19,6 +19,13 @@ CREATE TABLE users (
 	created_at    TEXT NOT NULL
 );
 
+CREATE TABLE sessions (
+	token      TEXT PRIMARY KEY,
+	user_id    INTEGER NOT NULL REFERENCES users(id) UNIQUE,
+	created_at TEXT NOT NULL,
+	expires_at TEXT NOT NULL
+);
+
 CREATE TABLE categories (
 	id   INTEGER PRIMARY KEY,
 	name TEXT NOT NULL UNIQUE,
