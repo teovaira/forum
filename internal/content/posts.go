@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"forum/internal/models"
 )
 
 // PostFilter defines the criteria for filtering posts.
@@ -86,4 +88,9 @@ func CreatePost(db *sql.DB, userID int64, title, body string, categoryIDs []int6
 	}
 
 	return postID, nil
+}
+
+// GetPost retrieves a single post by ID.
+func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
+	return nil, errors.New("not implemented")
 }
