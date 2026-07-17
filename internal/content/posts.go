@@ -163,6 +163,148 @@ func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
 }
 
 // ListPosts retrieves a list of posts matching the filter.
+//
+// It queries posts and joins with the users table. Categories and reactions are
+// fetched in batch to optimize performance. Posts are ordered by created_at DESC.
+//
+// Parameters:
+//   - db: An open SQLite database connection.
+//   - filter: The criteria to filter the post list.
+//
+// Returns:
+//   - A slice of Posts matching the filter, or empty slice if none match.
+//   - An error if any database operations fail.
 func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
-	return nil, errors.New("not implemented")
+	var query string
+	var args []any
+	var conditions []string
+
+	// Base query
+	query = `SELECT p.id, p.user_id, u.username, p.title, p.body, p.created_at
+			 FROM posts p
+			 JOIN users u ON p.user_id = u.id`
+
+	if filter.CreatedByUserID != nil {
+		conditions = append(conditions, "p.user_id = ?")
+		args = append(args, *filter.CreatedByUserID)
+	}
+
+	if filter.CategoryID != nil {
+		postIDs, err := PostIDsInCategory(db, *filter.CategoryID)
+		if err != nil {
+			return nil, err
+		}
+		if len(postIDs) == 0 {
+			return []models.Post{}, nil
+		}
+		// Construct IN clause
+		var placeholders []string
+		for _, id := range postIDs {
+			placeholders = append(placeholders, "?")
+			args = append(args, id)
+		}
+		conditions = append(conditions, "p.id IN ("+strings.Join(placeholders, ", ")+")")
+	}
+
+	if filter.LikedByUserID != nil {
+		postIDs, err := PostIDsLikedByUser(db, *filter.LikedByUserID)
+		if err != nil {
+			return nil, err
+		}
+		if len(postIDs) == 0 {
+			return []models.Post{}, nil
+		}
+		// Construct IN clause
+		var placeholders []string
+		for _, id := range postIDs {
+			placeholders = append(placeholders, "?")
+			args = append(args, id)
+		}
+		conditions = append(conditions, "p.id IN ("+strings.Join(placeholders, ", ")+")")
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	query += " ORDER BY p.created_at DESC, p.id DESC"
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	var postIDs []int64
+
+	for rows.Next() {
+		var post models.Post
+		var createdAtStr string
+		err = rows.Scan(&post.ID, &post.UserID, &post.Author, &post.Title, &post.Body, &createdAtStr)
+		if err != nil {
+			return nil, err
+		}
+		post.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+		postIDs = append(postIDs, post.ID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(posts) == 0 {
+		return []models.Post{}, nil
+	}
+
+	// Fetch categories for all returned posts in batch
+	var pcQuery string
+	var pcArgs []any
+	var pcPlaceholders []string
+	for _, id := range postIDs {
+		pcPlaceholders = append(pcPlaceholders, "?")
+		pcArgs = append(pcArgs, id)
+	}
+	pcQuery = "SELECT pc.post_id, c.id, c.name, c.kind FROM post_categories pc JOIN categories c ON pc.category_id = c.id WHERE pc.post_id IN (" + strings.Join(pcPlaceholders, ", ") + ")"
+
+	pcRows, err := db.Query(pcQuery, pcArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer pcRows.Close()
+
+	postCatMap := make(map[int64][]models.Category)
+	for pcRows.Next() {
+		var postID int64
+		var cat models.Category
+		if err := pcRows.Scan(&postID, &cat.ID, &cat.Name, &cat.Kind); err != nil {
+			return nil, err
+		}
+		postCatMap[postID] = append(postCatMap[postID], cat)
+	}
+	if err = pcRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Fetch reactions for all returned posts in batch
+	reactionMap, err := CountReactions(db, models.TargetPost, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate the categories and reaction counts on posts
+	for i := range posts {
+		id := posts[i].ID
+		posts[i].Categories = postCatMap[id]
+		if counts, ok := reactionMap[id]; ok {
+			posts[i].Likes = counts.Likes
+			posts[i].Dislikes = counts.Dislikes
+		}
+	}
+
+	return posts, nil
 }

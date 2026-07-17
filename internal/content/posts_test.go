@@ -4,11 +4,78 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
+
+	"forum/internal/database"
 )
+
+const postTestSchema = `
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE users (
+	id            INTEGER PRIMARY KEY,
+	username      TEXT NOT NULL UNIQUE,
+	email         TEXT NOT NULL UNIQUE,
+	password_hash TEXT NOT NULL,
+	created_at    TEXT NOT NULL
+);
+
+CREATE TABLE categories (
+	id   INTEGER PRIMARY KEY,
+	name TEXT NOT NULL UNIQUE,
+	kind TEXT NOT NULL CHECK (
+		kind IN ('demographic', 'genre', 'theme', 'discussion')
+	)
+);
+
+CREATE TABLE posts (
+	id         INTEGER PRIMARY KEY,
+	user_id    INTEGER NOT NULL REFERENCES users(id),
+	title      TEXT NOT NULL,
+	body       TEXT NOT NULL,
+	created_at TEXT NOT NULL
+);
+
+CREATE TABLE post_categories (
+	post_id     INTEGER NOT NULL REFERENCES posts(id),
+	category_id INTEGER NOT NULL REFERENCES categories(id),
+	PRIMARY KEY (post_id, category_id)
+);
+
+CREATE TABLE reactions (
+	id          INTEGER PRIMARY KEY,
+	user_id     INTEGER NOT NULL REFERENCES users(id),
+	target_id   INTEGER NOT NULL,
+	target_type TEXT NOT NULL CHECK (target_type IN ('post', 'comment')),
+	value       INTEGER NOT NULL CHECK (value = 1 OR value = -1),
+	created_at  TEXT NOT NULL,
+	UNIQUE (user_id, target_id, target_type)
+);
+`
+
+func newPostTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("database.Connect() error = %v", err)
+	}
+
+	db.SetMaxOpenConns(1)
+
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	if _, err := db.Exec(postTestSchema); err != nil {
+		t.Fatalf("create post test schema: %v", err)
+	}
+
+	return db
+}
 
 func TestCreatePost(t *testing.T) {
 	t.Run("successfully creates a post with category", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 		categoryID := insertCategory(t, db, "General", "discussion")
 
@@ -56,7 +123,7 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	t.Run("rejects empty or whitespace-only title", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 		categoryID := insertCategory(t, db, "General", "discussion")
 
@@ -67,7 +134,7 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	t.Run("rejects empty or whitespace-only body", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 		categoryID := insertCategory(t, db, "General", "discussion")
 
@@ -78,7 +145,7 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	t.Run("rejects empty categories list", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 
 		_, err := CreatePost(db, userID, "Valid Title", "Valid body", []int64{})
@@ -88,7 +155,7 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	t.Run("enforces foreign key for user_id", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		categoryID := insertCategory(t, db, "General", "discussion")
 
 		_, err := CreatePost(db, 999_999, "Valid Title", "Valid body", []int64{categoryID})
@@ -101,7 +168,7 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	t.Run("enforces foreign key for category_id", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 
 		_, err := CreatePost(db, userID, "Valid Title", "Valid body", []int64{999_999})
@@ -116,7 +183,7 @@ func TestCreatePost(t *testing.T) {
 
 func TestGetPost(t *testing.T) {
 	t.Run("successfully retrieves an existing post with categories", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		userID := insertUser(t, db, "marios")
 		categoryID1 := insertCategory(t, db, "Action", "genre")
 		categoryID2 := insertCategory(t, db, "School", "theme")
@@ -168,7 +235,7 @@ func TestGetPost(t *testing.T) {
 	})
 
 	t.Run("returns ErrNoRows for non-existent post", func(t *testing.T) {
-		db := newCategoryTestDB(t)
+		db := newPostTestDB(t)
 		_, err := GetPost(db, 999_999)
 		if err != sql.ErrNoRows {
 			t.Errorf("GetPost() error = %v, want sql.ErrNoRows", err)
@@ -177,7 +244,7 @@ func TestGetPost(t *testing.T) {
 }
 
 func TestListPosts(t *testing.T) {
-	db := newCategoryTestDB(t)
+	db := newPostTestDB(t)
 	userID1 := insertUser(t, db, "user1")
 	userID2 := insertUser(t, db, "user2")
 
@@ -259,6 +326,34 @@ func TestListPosts(t *testing.T) {
 
 		if len(posts) != 0 {
 			t.Errorf("ListPosts() filtered by liked returned %d posts, want 0", len(posts))
+		}
+	})
+
+	t.Run("filters by liked posts (when some are liked)", func(t *testing.T) {
+		_, err := db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID1, postID2, "post", 1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert like reaction: %v", err)
+		}
+
+		posts, err := ListPosts(db, PostFilter{LikedByUserID: &userID1})
+		if err != nil {
+			t.Fatalf("ListPosts() error = %v", err)
+		}
+
+		if len(posts) != 1 {
+			t.Fatalf("ListPosts() filtered by liked returned %d posts, want 1", len(posts))
+		}
+
+		if posts[0].ID != postID2 {
+			t.Errorf("posts[0].ID = %d, want %d", posts[0].ID, postID2)
+		}
+
+		if posts[0].Likes != 1 {
+			t.Errorf("posts[0].Likes = %d, want 1", posts[0].Likes)
 		}
 	})
 }
