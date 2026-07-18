@@ -93,3 +93,40 @@ func CountReactions(db *sql.DB, target models.ReactionTarget, ids []int64,
 	}
 	return result, nil
 }
+
+// PostIDsLikedByUser returns the IDs of all posts liked by a user.
+//
+// The function retrieves every post that has a positive reaction from the
+// specified user. Only reactions targeting posts with a like value are
+// included in the returned slice.
+//
+// Parameters:
+// - db: The database connection used to execute the query.
+// - userID: The ID of the user whose liked posts are retrieved.
+//
+// Returns:
+// - A slice containing the IDs of all posts liked by the user.
+// - An error if the database query or row iteration fails.
+func PostIDsLikedByUser(db *sql.DB, userID int64) ([]int64, error) {
+	var postIDs []int64
+	rows, err := db.Query("SELECT target_id FROM reactions WHERE user_id=? AND target_type=? AND value=?", userID, models.TargetPost, models.Like)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var postID int64
+		err = rows.Scan(&postID)
+		if err != nil {
+			return nil, err
+		}
+		postIDs = append(postIDs, postID)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return postIDs, nil
+}
