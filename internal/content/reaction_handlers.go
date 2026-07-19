@@ -60,3 +60,43 @@ func ReactPostHandler(db *sql.DB) http.HandlerFunc {
 	}
 
 }
+
+// ReactCommentHandler handles like and dislike reactions on comments.
+//
+// It reads the current user from context, parses the comment ID from the URL,
+// determines the reaction type from the URL suffix ("/like" or "/dislike"),
+// and calls UpsertReaction to apply the toggle logic. On success it
+// redirects the user back to the post page.
+//
+// Parameters:
+//   - db: Active SQLite database connection.
+//
+// Returns:
+//   - An http.HandlerFunc that processes the reaction request.
+func ReactCommentHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, exists := auth.UserFromContext(r.Context())
+		if !exists {
+			webutil.RenderError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		userID := user.ID
+		idStr := r.PathValue("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			webutil.RenderError(w, http.StatusBadRequest, "invalid comment id")
+			return
+		}
+		url := r.URL.Path
+		var value models.ReactionValue
+		if end := strings.HasSuffix(url, "like"); end {
+			value = models.Like
+		} else {
+			value = models.Dislike
+		}
+		if err = UpsertReaction(db, models.TargetComment, id, userID, value); err != nil {
+			webutil.RenderError(w, http.StatusInternalServerError, "failed to react")
+			return
+		}
+	}
+}
