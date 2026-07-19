@@ -15,7 +15,7 @@ import (
 //
 // It reads the current user from context, parses the post ID from the URL,
 // determines the reaction type from the URL suffix ("/like" or "/dislike"),
-// and calls UpsertReaction to apply the toggle logic. On success it
+// and calls UpsertReaction to apply the toggle logic. On success, it
 // redirects the user back to the post page.
 //
 // Parameters:
@@ -30,14 +30,19 @@ func ReactPostHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
 		userID := user.ID
+
 		idStr := r.PathValue("id")
+
 		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
+		if err != nil || id <= 0 {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid post id")
 			return
 		}
+
 		var value models.ReactionValue
+
 		if strings.HasSuffix(r.URL.Path, "/like") {
 			value = models.Like
 		} else if strings.HasSuffix(r.URL.Path, "/dislike") {
@@ -46,11 +51,29 @@ func ReactPostHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid reaction")
 			return
 		}
-		if err = UpsertReaction(db, models.TargetPost, id, userID, value); err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "failed to react")
+
+		err = UpsertReaction(
+			db,
+			models.TargetPost,
+			id,
+			userID,
+			value,
+		)
+		if err != nil {
+			webutil.RenderError(
+				w,
+				http.StatusInternalServerError,
+				"failed to react",
+			)
 			return
 		}
-		http.Redirect(w, r, fmt.Sprintf("/posts/%d", id), http.StatusSeeOther)
+
+		http.Redirect(
+			w,
+			r,
+			fmt.Sprintf("/posts/%d", id),
+			http.StatusSeeOther,
+		)
 	}
 }
 
@@ -58,8 +81,11 @@ func ReactPostHandler(db *sql.DB) http.HandlerFunc {
 //
 // It reads the current user from context, parses the comment ID from the URL,
 // determines the reaction type from the URL suffix ("/like" or "/dislike"),
-// and calls UpsertReaction to apply the toggle logic. On success it
-// redirects the user back to the post that contains the comment.
+// and calls UpsertReaction to apply the toggle logic.
+//
+// It also reads the parent post ID from the form field named "post_id" so that,
+// after the reaction succeeds, it can redirect the user back to the post that
+// contains the comment.
 //
 // Parameters:
 //   - db: Active SQLite database connection.
@@ -73,14 +99,27 @@ func ReactCommentHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
 		userID := user.ID
+
 		idStr := r.PathValue("id")
+
 		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
+		if err != nil || id <= 0 {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid comment id")
 			return
 		}
+
+		postIDStr := r.FormValue("post_id")
+
+		postID, err := strconv.ParseInt(postIDStr, 10, 64)
+		if err != nil || postID <= 0 {
+			webutil.RenderError(w, http.StatusBadRequest, "invalid post id")
+			return
+		}
+
 		var value models.ReactionValue
+
 		if strings.HasSuffix(r.URL.Path, "/like") {
 			value = models.Like
 		} else if strings.HasSuffix(r.URL.Path, "/dislike") {
@@ -89,9 +128,28 @@ func ReactCommentHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid reaction")
 			return
 		}
-		if err = UpsertReaction(db, models.TargetComment, id, userID, value); err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "failed to react")
+
+		err = UpsertReaction(
+			db,
+			models.TargetComment,
+			id,
+			userID,
+			value,
+		)
+		if err != nil {
+			webutil.RenderError(
+				w,
+				http.StatusInternalServerError,
+				"failed to react",
+			)
 			return
 		}
+
+		http.Redirect(
+			w,
+			r,
+			fmt.Sprintf("/posts/%d", postID),
+			http.StatusSeeOther,
+		)
 	}
 }
