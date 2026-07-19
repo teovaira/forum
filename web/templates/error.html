@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forum – Error {{.StatusCode}}</title>
+</head>
+<body>
+{{template "simple-header" .}}
+
+<main>
+    <h1>Error {{.StatusCode}}</h1>
+    <p>{{.Message}}</p>
+    <p><a href="/">Return home</a></p>
+</main>
+
+{{template "footer" .}}
+</body>
+</html>
