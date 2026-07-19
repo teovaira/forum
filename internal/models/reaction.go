@@ -18,8 +18,12 @@ type ReactionTarget string
 type ReactionValue int
 
 const (
-	TargetPost    ReactionTarget = "post"
+	// TargetPost identifies a reaction directed at a post.
+	TargetPost ReactionTarget = "post"
+	// TargetComment identifies a reaction directed at a comment.
 	TargetComment ReactionTarget = "comment"
-	Like          ReactionValue  = 1
-	Dislike       ReactionValue  = -1
+	// Like represents a positive reaction with value 1.
+	Like ReactionValue = 1
+	// Dislike represents a negative reaction with value -1.
+	Dislike ReactionValue = -1
 )
