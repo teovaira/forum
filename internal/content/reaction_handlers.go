@@ -37,12 +37,14 @@ func ReactPostHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid post id")
 			return
 		}
-		url := r.URL.Path
 		var value models.ReactionValue
-		if strings.HasSuffix(url, "/like") {
+		if strings.HasSuffix(r.URL.Path, "/like") {
 			value = models.Like
-		} else {
+		} else if strings.HasSuffix(r.URL.Path, "/dislike") {
 			value = models.Dislike
+		} else {
+			webutil.RenderError(w, http.StatusBadRequest, "invalid reaction")
+			return
 		}
 		if err = UpsertReaction(db, models.TargetPost, id, userID, value); err != nil {
 			webutil.RenderError(w, http.StatusInternalServerError, "failed to react")
@@ -78,12 +80,14 @@ func ReactCommentHandler(db *sql.DB) http.HandlerFunc {
 			webutil.RenderError(w, http.StatusBadRequest, "invalid comment id")
 			return
 		}
-		url := r.URL.Path
 		var value models.ReactionValue
-		if strings.HasSuffix(url, "/like") {
+		if strings.HasSuffix(r.URL.Path, "/like") {
 			value = models.Like
-		} else {
+		} else if strings.HasSuffix(r.URL.Path, "/dislike") {
 			value = models.Dislike
+		} else {
+			webutil.RenderError(w, http.StatusBadRequest, "invalid reaction")
+			return
 		}
 		if err = UpsertReaction(db, models.TargetComment, id, userID, value); err != nil {
 			webutil.RenderError(w, http.StatusInternalServerError, "failed to react")
