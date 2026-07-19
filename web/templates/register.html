@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forum – Register</title>
+</head>
+<body>
+{{template "simple-header" .}}
+
+<main>
+    <h1>Register</h1>
+
+    {{if .ErrorMessage}}
+        <p>{{.ErrorMessage}}</p>
+    {{end}}
+
+    <form method="post" action="/register">
+        <label>Email <input type="email" name="email"></label>
+        <label>Username <input type="text" name="username"></label>
+        <label>Password <input type="password" name="password"></label>
+        <button type="submit">Register</button>
+    </form>
+
+    <p>Already have an account? <a href="/login">Log In</a></p>
+</main>
+
+{{template "footer" .}}
+</body>
+</html>
