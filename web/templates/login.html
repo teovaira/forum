@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forum – Log In</title>
+</head>
+<body>
+{{template "simple-header" .}}
+
+<main>
+    <h1>Log In</h1>
+
+    {{if .ErrorMessage}}
+        <p>{{.ErrorMessage}}</p>
+    {{end}}
+
+    <form method="post" action="/login">
+        <label>Email <input type="email" name="email"></label>
+        <label>Password <input type="password" name="password"></label>
+        <button type="submit">Log In</button>
+    </form>
+
+    <p>Don't have an account? <a href="/register">Register</a></p>
+</main>
+
+{{template "footer" .}}
+</body>
+</html>
