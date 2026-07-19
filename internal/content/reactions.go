@@ -1,3 +1,10 @@
+// Package content provides data access functions for forum content.
+//
+// The package contains repository functions that retrieve and manipulate
+// forum data stored in the SQLite database, including categories, posts,
+// comments, and reactions. Each function encapsulates the required SQL
+// queries and returns Go data structures for use by the rest of the
+// application.
 package content
 
 import (
@@ -141,6 +148,9 @@ func PostIDsLikedByUser(db *sql.DB, userID int64) ([]int64, error) {
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
+	}
+	if len(postIDs) == 0 {
+		return []int64{}, nil
 	}
 	return postIDs, nil
 }
