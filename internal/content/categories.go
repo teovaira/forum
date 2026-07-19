@@ -33,7 +33,6 @@ func ListCategories(db *sql.DB) ([]models.Category, error) {
 	for rows.Next() {
 		var category models.Category
 		err = rows.Scan(&category.ID, &category.Name, &category.Kind)
-
 		if err != nil {
 			return categories, err
 		}
@@ -41,6 +40,9 @@ func ListCategories(db *sql.DB) ([]models.Category, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return categories, err
+	}
+	if len(categories) == 0 {
+		return []models.Category{}, nil
 	}
 	return categories, nil
 }
@@ -74,7 +76,9 @@ func PostIDsInCategory(db *sql.DB, categoryID int64) ([]int64, error) {
 	}
 	if err = rows.Err(); err != nil {
 		return postIDs, err
-
+	}
+	if len(postIDs) == 0 {
+		return []int64{}, nil
 	}
 	return postIDs, nil
 }
