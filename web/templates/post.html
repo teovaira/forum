@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forum – {{.Post.Title}}</title>
+</head>
+<body>
+{{template "header" .}}
+
+<main>
+    <article>
+        <h1>{{.Post.Title}}</h1>
+        <p>by {{.Post.Author}} on {{.Post.CreatedAt.Format "2006-01-02"}}</p>
+        <p>{{.Post.Body}}</p>
+        <ul>
+            {{range .Post.Categories}}
+                <li>{{.Name}}</li>
+            {{end}}
+        </ul>
+
+        {{if .CurrentUser}}
+            <form method="post" action="/posts/{{.Post.ID}}/like">
+                <button type="submit">Like ({{.Post.Likes}})</button>
+            </form>
+            <form method="post" action="/posts/{{.Post.ID}}/dislike">
+                <button type="submit">Dislike ({{.Post.Dislikes}})</button>
+            </form>
+        {{else}}
+            <p>{{.Post.Likes}} likes / {{.Post.Dislikes}} dislikes</p>
+        {{end}}
+    </article>
+
+    <section>
+        <h2>Comments</h2>
+
+        {{if .ErrorMessage}}
+            <p>{{.ErrorMessage}}</p>
+        {{end}}
+
+        {{range .Comments}}
+            <article>
+                <p>{{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+                <p>{{.Body}}</p>
+
+                {{if $.CurrentUser}}
+                    <form method="post" action="/comments/{{.ID}}/like">
+                        <input type="hidden" name="post_id" value="{{.PostID}}">
+                        <button type="submit">Like ({{.Likes}})</button>
+                    </form>
+                    <form method="post" action="/comments/{{.ID}}/dislike">
+                        <input type="hidden" name="post_id" value="{{.PostID}}">
+                        <button type="submit">Dislike ({{.Dislikes}})</button>
+                    </form>
+                {{else}}
+                    <p>{{.Likes}} likes / {{.Dislikes}} dislikes</p>
+                {{end}}
+            </article>
+        {{else}}
+            <p>No comments yet.</p>
+        {{end}}
+
+        {{if .CurrentUser}}
+            <form method="post" action="/posts/{{.Post.ID}}/comments">
+                <textarea name="body"></textarea>
+                <button type="submit">Post Comment</button>
+            </form>
+        {{end}}
+    </section>
+</main>
+
+{{template "footer" .}}
+</body>
+</html>
