@@ -1,0 +1,32 @@
+{{define "header"}}
+<header>
+    <a href="/">Forum</a>
+    <nav>
+        <a href="/">Home</a>
+        {{if .CurrentUser}}
+            <a href="/posts/new">New Post</a>
+            <a href="/?filter=mine">My Posts</a>
+            <a href="/?filter=liked">Liked Posts</a>
+            <span>{{.CurrentUser.Username}}</span>
+            <form method="post" action="/logout">
+                <button type="submit">Log Out</button>
+            </form>
+        {{else}}
+            <a href="/login">Log In</a>
+            <a href="/register">Register</a>
+        {{end}}
+    </nav>
+</header>
+{{end}}
+
+{{define "simple-header"}}
+<header>
+    <a href="/">Forum</a>
+</header>
+{{end}}
+
+{{define "footer"}}
+<footer>
+    <p>Forum</p>
+</footer>
+{{end}}
