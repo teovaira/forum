@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forum – Home</title>
+</head>
+<body>
+{{template "header" .}}
+
+<main>
+    <nav>
+        <a href="/">All</a>
+        {{range .Categories}}
+            <a href="/?category={{.ID}}">{{.Name}}</a>
+        {{end}}
+    </nav>
+
+    {{if .ActiveFilter}}
+        <p>Filter: {{.ActiveFilter}}</p>
+    {{end}}
+
+    {{range .Posts}}
+        <article>
+            <h2><a href="/posts/{{.ID}}">{{.Title}}</a></h2>
+            <p>by {{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+            <p>{{.Body}}</p>
+            <ul>
+                {{range .Categories}}
+                    <li>{{.Name}}</li>
+                {{end}}
+            </ul>
+            <p>{{.Likes}} likes / {{.Dislikes}} dislikes</p>
+        </article>
+    {{else}}
+        <p>No posts yet.</p>
+    {{end}}
+</main>
+
+{{template "footer" .}}
+</body>
+</html>
