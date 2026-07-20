@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Forum – Error {{.StatusCode}}</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 {{template "simple-header" .}}
 
-<main>
-    <h1>Error {{.StatusCode}}</h1>
-    <p>{{.Message}}</p>
+<main class="container error-page">
+    <h1 class="error-page__code">Error {{.StatusCode}}</h1>
+    <p class="error-page__message">{{.Message}}</p>
     <p><a href="/">Return home</a></p>
 </main>
 

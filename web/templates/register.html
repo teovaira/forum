@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Forum – Register</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 {{template "simple-header" .}}
 
-<main>
+<main class="container">
     <h1>Register</h1>
 
     {{if .ErrorMessage}}
-        <p>{{.ErrorMessage}}</p>
+        <p class="auth-form__error">{{.ErrorMessage}}</p>
     {{end}}
 
-    <form method="post" action="/register">
-        <label>Email <input type="email" name="email"></label>
-        <label>Username <input type="text" name="username"></label>
-        <label>Password <input type="password" name="password"></label>
+    <form method="post" action="/register" class="auth-form">
+        <label class="auth-form__field">Email <input type="email" name="email"></label>
+        <label class="auth-form__field">Username <input type="text" name="username"></label>
+        <label class="auth-form__field">Password <input type="password" name="password"></label>
         <button type="submit">Register</button>
     </form>
 

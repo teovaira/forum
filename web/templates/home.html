@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>Forum – Home</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 {{template "header" .}}
 
-<main>
-    <nav>
-        <a href="/">All</a>
+<main class="container">
+    <nav class="filter-nav">
+        <a href="/" class="filter-nav__link">All</a>
         {{range .Categories}}
-            <a href="/?category={{.ID}}">{{.Name}}</a>
+            <a href="/?category={{.ID}}" class="filter-nav__link">{{.Name}}</a>
         {{end}}
     </nav>
 
@@ -20,16 +22,16 @@
     {{end}}
 
     {{range .Posts}}
-        <article>
-            <h2><a href="/posts/{{.ID}}">{{.Title}}</a></h2>
-            <p>by {{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
-            <p>{{.Body}}</p>
-            <ul>
+        <article class="post post--summary">
+            <h2 class="post__title"><a href="/posts/{{.ID}}">{{.Title}}</a></h2>
+            <p class="post__meta">by {{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+            <p class="post__body">{{.Body}}</p>
+            <ul class="post__categories">
                 {{range .Categories}}
-                    <li>{{.Name}}</li>
+                    <li><a href="/?category={{.ID}}" class="category-tag">{{.Name}}</a></li>
                 {{end}}
             </ul>
-            <p>{{.Likes}} likes / {{.Dislikes}} dislikes</p>
+            <p class="post__counts">{{.Likes}} likes / {{.Dislikes}} dislikes</p>
         </article>
     {{else}}
         <p>No posts yet.</p>

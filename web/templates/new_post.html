@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Forum – New Post</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 {{template "header" .}}
 
-<main>
+<main class="container">
     <h1>New Post</h1>
 
     {{if .ErrorMessage}}
-        <p>{{.ErrorMessage}}</p>
+        <p class="post-form__error">{{.ErrorMessage}}</p>
     {{end}}
 
-    <form method="post" action="/posts">
-        <label>Title <input type="text" name="title"></label>
-        <label>Body <textarea name="body"></textarea></label>
+    <form method="post" action="/posts" class="post-form">
+        <label class="post-form__field">Title <input type="text" name="title"></label>
+        <label class="post-form__field">Body <textarea name="body"></textarea></label>
 
-        <fieldset>
+        <fieldset class="post-form__categories">
             <legend>Categories</legend>
             {{range .Categories}}
-                <label>
+                <label class="post-form__category">
                     <input type="checkbox" name="categories" value="{{.ID}}">
                     {{.Name}} ({{.Kind}})
                 </label>

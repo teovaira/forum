@@ -1,15 +1,15 @@
 {{define "header"}}
-<header>
-    <a href="/">Forum</a>
-    <nav>
+<header class="site-header">
+    <a href="/" class="site-header__logo">Forum</a>
+    <nav class="site-header__nav">
         <a href="/">Home</a>
         {{if .CurrentUser}}
             <a href="/posts/new">New Post</a>
             <a href="/?filter=mine">My Posts</a>
             <a href="/?filter=liked">Liked Posts</a>
-            <span>{{.CurrentUser.Username}}</span>
+            <span class="site-header__user">{{.CurrentUser.Username}}</span>
             <form method="post" action="/logout">
-                <button type="submit">Log Out</button>
+                <button type="submit" class="site-header__logout">Log Out</button>
             </form>
         {{else}}
             <a href="/login">Log In</a>
@@ -20,13 +20,13 @@
 {{end}}
 
 {{define "simple-header"}}
-<header>
-    <a href="/">Forum</a>
+<header class="site-header">
+    <a href="/" class="site-header__logo">Forum</a>
 </header>
 {{end}}
 
 {{define "footer"}}
-<footer>
+<footer class="site-footer">
     <p>Forum</p>
 </footer>
 {{end}}

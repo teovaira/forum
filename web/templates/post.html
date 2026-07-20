@@ -3,30 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Forum – {{.Post.Title}}</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 {{template "header" .}}
 
-<main>
-    <article>
-        <h1>{{.Post.Title}}</h1>
-        <p>by {{.Post.Author}} on {{.Post.CreatedAt.Format "2006-01-02"}}</p>
-        <p>{{.Post.Body}}</p>
-        <ul>
+<main class="container">
+    <article class="post">
+        <h1 class="post__title">{{.Post.Title}}</h1>
+        <p class="post__meta">by {{.Post.Author}} on {{.Post.CreatedAt.Format "2006-01-02"}}</p>
+        <p class="post__body">{{.Post.Body}}</p>
+        <ul class="post__categories">
             {{range .Post.Categories}}
-                <li>{{.Name}}</li>
+                <li><a href="/?category={{.ID}}" class="category-tag">{{.Name}}</a></li>
             {{end}}
         </ul>
 
         {{if .CurrentUser}}
-            <form method="post" action="/posts/{{.Post.ID}}/like">
-                <button type="submit">Like ({{.Post.Likes}})</button>
-            </form>
-            <form method="post" action="/posts/{{.Post.ID}}/dislike">
-                <button type="submit">Dislike ({{.Post.Dislikes}})</button>
-            </form>
+            <div class="post__reactions">
+                <form method="post" action="/posts/{{.Post.ID}}/like">
+                    <button type="submit" class="reaction-button reaction-button--like">Like ({{.Post.Likes}})</button>
+                </form>
+                <form method="post" action="/posts/{{.Post.ID}}/dislike">
+                    <button type="submit" class="reaction-button reaction-button--dislike">Dislike ({{.Post.Dislikes}})</button>
+                </form>
+            </div>
         {{else}}
-            <p>{{.Post.Likes}} likes / {{.Post.Dislikes}} dislikes</p>
+            <p class="post__counts">{{.Post.Likes}} likes / {{.Post.Dislikes}} dislikes</p>
         {{end}}
     </article>
 
@@ -34,25 +38,27 @@
         <h2>Comments</h2>
 
         {{if .ErrorMessage}}
-            <p>{{.ErrorMessage}}</p>
+            <p class="comment-form__error">{{.ErrorMessage}}</p>
         {{end}}
 
         {{range .Comments}}
-            <article>
-                <p>{{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
-                <p>{{.Body}}</p>
+            <article class="comment">
+                <p class="comment__meta">{{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+                <p class="comment__body">{{.Body}}</p>
 
                 {{if $.CurrentUser}}
-                    <form method="post" action="/comments/{{.ID}}/like">
-                        <input type="hidden" name="post_id" value="{{.PostID}}">
-                        <button type="submit">Like ({{.Likes}})</button>
-                    </form>
-                    <form method="post" action="/comments/{{.ID}}/dislike">
-                        <input type="hidden" name="post_id" value="{{.PostID}}">
-                        <button type="submit">Dislike ({{.Dislikes}})</button>
-                    </form>
+                    <div class="comment__reactions">
+                        <form method="post" action="/comments/{{.ID}}/like">
+                            <input type="hidden" name="post_id" value="{{.PostID}}">
+                            <button type="submit" class="reaction-button reaction-button--like">Like ({{.Likes}})</button>
+                        </form>
+                        <form method="post" action="/comments/{{.ID}}/dislike">
+                            <input type="hidden" name="post_id" value="{{.PostID}}">
+                            <button type="submit" class="reaction-button reaction-button--dislike">Dislike ({{.Dislikes}})</button>
+                        </form>
+                    </div>
                 {{else}}
-                    <p>{{.Likes}} likes / {{.Dislikes}} dislikes</p>
+                    <p class="comment__counts">{{.Likes}} likes / {{.Dislikes}} dislikes</p>
                 {{end}}
             </article>
         {{else}}
@@ -60,7 +66,7 @@
         {{end}}
 
         {{if .CurrentUser}}
-            <form method="post" action="/posts/{{.Post.ID}}/comments">
+            <form method="post" action="/posts/{{.Post.ID}}/comments" class="comment-form">
                 <textarea name="body"></textarea>
                 <button type="submit">Post Comment</button>
             </form>
