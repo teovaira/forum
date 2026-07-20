@@ -11,9 +11,9 @@
 
 <main class="container">
     <nav class="filter-nav">
-        <a href="/" class="filter-nav__link">All</a>
+        <a href="/" class="filter-nav__link{{if eq .ActiveFilter ""}} filter-nav__link--active{{end}}">All</a>
         {{range .Categories}}
-            <a href="/?category={{.ID}}" class="filter-nav__link">{{.Name}}</a>
+            <a href="/?category={{.ID}}" class="filter-nav__link{{if eq $.ActiveFilter (printf "category:%d" .ID)}} filter-nav__link--active{{end}}">{{.Name}}</a>
         {{end}}
     </nav>
 
