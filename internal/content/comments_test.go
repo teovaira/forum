@@ -144,5 +144,43 @@ func TestListComments(t *testing.T) {
 			t.Errorf("ListComments() authors = [%q, %q], want [%q, %q]",
 				comments[0].Author, comments[1].Author, "user1", "user2")
 		}
+
+		// Verify reactions are populated
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID1, commentID1, "comment", 1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert like reaction: %v", err)
+		}
+
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID2, commentID2, "comment", -1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert dislike reaction: %v", err)
+		}
+
+		commentsWithReactions, err := ListComments(db, postID)
+		if err != nil {
+			t.Fatalf("ListComments() with reactions error = %v", err)
+		}
+
+		if len(commentsWithReactions) != 2 {
+			t.Fatalf("ListComments() with reactions returned %d comments, want 2", len(commentsWithReactions))
+		}
+
+		if commentsWithReactions[0].Likes != 1 || commentsWithReactions[0].Dislikes != 0 {
+			t.Errorf("comment 1 reactions: Likes = %d (want 1), Dislikes = %d (want 0)",
+				commentsWithReactions[0].Likes, commentsWithReactions[0].Dislikes)
+		}
+
+		if commentsWithReactions[1].Likes != 0 || commentsWithReactions[1].Dislikes != 1 {
+			t.Errorf("comment 2 reactions: Likes = %d (want 0), Dislikes = %d (want 1)",
+				commentsWithReactions[1].Likes, commentsWithReactions[1].Dislikes)
+		}
 	})
 }
