@@ -19,8 +19,8 @@ import (
 func TestMain(m *testing.M) {
 	// Initialize a dummy template set in webutil to prevent nil panics during content handler tests
 	webutil.SetTemplates(template.Must(template.New("test").Parse(
-		`{{define "home.html"}}home: {{len .Posts}} posts, ActiveFilter: {{.ActiveFilter}}{{end}}` +
-			`{{define "post.html"}}post: {{.Post.Title}} - {{.ErrorMessage}}{{end}}` +
+		`{{define "home.html"}}home: {{len .Posts}} posts, ActiveFilter: {{.ActiveFilter}}{{if gt (len .Posts) 0}} (First post Likes: {{(index .Posts 0).Likes}}, Dislikes: {{(index .Posts 0).Dislikes}}){{end}}{{end}}` +
+			`{{define "post.html"}}post: {{.Post.Title}} (Likes: {{.Post.Likes}}, Dislikes: {{.Post.Dislikes}}) - Comments: {{range .Comments}}{{.Body}} (Likes: {{.Likes}}, Dislikes: {{.Dislikes}}); {{end}} - {{.ErrorMessage}}{{end}}` +
 			`{{define "new_post.html"}}new_post: {{.ErrorMessage}}{{end}}` +
 			`{{define "error.html"}}error: {{.Message}}{{end}}`,
 	)))
@@ -149,6 +149,42 @@ func TestPostViewHandlerIntegration(t *testing.T) {
 		_ = db.QueryRow("SELECT id FROM users WHERE username = 'author'").Scan(&userID)
 		postID, _ := CreatePost(db, userID, "Post Title", "Post Body", []int64{categoryID})
 
+		// Add a comment
+		commentID, err := CreateComment(db, postID, userID, "Integration Comment")
+		if err != nil {
+			t.Fatalf("failed to create comment: %v", err)
+		}
+
+		// Insert post reactions
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID, postID, "post", 1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert post like: %v", err)
+		}
+
+		otherUserID := insertUser(t, db, "otherauthor")
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			otherUserID, postID, "post", -1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert post dislike: %v", err)
+		}
+
+		// Insert comment reaction
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID, commentID, "comment", 1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert comment like: %v", err)
+		}
+
 		r, _ := newAuthRequest(http.MethodGet, "/posts/"+strconv.FormatInt(postID, 10), nil, db, "")
 		w := httptest.NewRecorder()
 
@@ -157,8 +193,10 @@ func TestPostViewHandlerIntegration(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("expected 200 OK, got %d", w.Code)
 		}
-		if !strings.Contains(w.Body.String(), "post: Post Title") {
-			t.Errorf("unexpected body: %q", w.Body.String())
+
+		expectedOutput := "post: Post Title (Likes: 1, Dislikes: 1) - Comments: Integration Comment (Likes: 1, Dislikes: 0);"
+		if !strings.Contains(w.Body.String(), expectedOutput) {
+			t.Errorf("unexpected body: %q, wanted to contain: %q", w.Body.String(), expectedOutput)
 		}
 	})
 }

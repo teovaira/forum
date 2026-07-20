@@ -247,6 +247,38 @@ func TestGetPost(t *testing.T) {
 		if !hasAction || !hasSchool {
 			t.Errorf("post categories = %v, want both Action and School", names)
 		}
+
+		// Verify reaction counts are populated correctly
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			userID, postID, "post", 1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert like reaction: %v", err)
+		}
+
+		otherUserID := insertUser(t, db, "otheruser")
+		_, err = db.Exec(
+			`INSERT INTO reactions (user_id, target_id, target_type, value, created_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+			otherUserID, postID, "post", -1, "2026-01-01T00:00:00Z",
+		)
+		if err != nil {
+			t.Fatalf("failed to insert dislike reaction: %v", err)
+		}
+
+		postWithReactions, err := GetPost(db, postID)
+		if err != nil {
+			t.Fatalf("GetPost() with reactions unexpected error = %v", err)
+		}
+
+		if postWithReactions.Likes != 1 {
+			t.Errorf("post.Likes = %d, want 1", postWithReactions.Likes)
+		}
+		if postWithReactions.Dislikes != 1 {
+			t.Errorf("post.Dislikes = %d, want 1", postWithReactions.Dislikes)
+		}
 	})
 
 	t.Run("returns ErrNoRows for non-existent post", func(t *testing.T) {
