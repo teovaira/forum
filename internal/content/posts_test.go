@@ -281,7 +281,6 @@ func TestGetPost(t *testing.T) {
 		}
 	})
 
-
 	t.Run("returns ErrNoRows for non-existent post", func(t *testing.T) {
 		db := newPostTestDB(t)
 		_, err := GetPost(db, 999_999)
