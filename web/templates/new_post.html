@@ -21,12 +21,50 @@
         <label class="post-form__field">Body <textarea name="body"></textarea></label>
 
         <fieldset class="post-form__categories">
-            <legend>Categories</legend>
+            <legend>Demographic</legend>
             {{range .Categories}}
-                <label class="post-form__category">
-                    <input type="checkbox" name="categories" value="{{.ID}}">
-                    {{.Name}} ({{.Kind}})
-                </label>
+                {{if eq .Kind "demographic"}}
+                    <label class="post-form__category">
+                        <input type="checkbox" name="categories" value="{{.ID}}">
+                        {{.Name}}
+                    </label>
+                {{end}}
+            {{end}}
+        </fieldset>
+
+        <fieldset class="post-form__categories">
+            <legend>Genre</legend>
+            {{range .Categories}}
+                {{if eq .Kind "genre"}}
+                    <label class="post-form__category">
+                        <input type="checkbox" name="categories" value="{{.ID}}">
+                        {{.Name}}
+                    </label>
+                {{end}}
+            {{end}}
+        </fieldset>
+
+        <fieldset class="post-form__categories">
+            <legend>Theme</legend>
+            {{range .Categories}}
+                {{if eq .Kind "theme"}}
+                    <label class="post-form__category">
+                        <input type="checkbox" name="categories" value="{{.ID}}">
+                        {{.Name}}
+                    </label>
+                {{end}}
+            {{end}}
+        </fieldset>
+
+        <fieldset class="post-form__categories">
+            <legend>Discussion</legend>
+            {{range .Categories}}
+                {{if eq .Kind "discussion"}}
+                    <label class="post-form__category">
+                        <input type="checkbox" name="categories" value="{{.ID}}">
+                        {{.Name}}
+                    </label>
+                {{end}}
             {{end}}
         </fieldset>
 
