@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"forum/internal/database"
+	"forum/internal/models"
 )
 
 const postTestSchema = `
@@ -228,8 +229,21 @@ func TestGetPost(t *testing.T) {
 		if post.Body != "Body" {
 			t.Errorf("post.Body = %q, want %q", post.Body, "Body")
 		}
+
+		// Verify that GetPost does not populate categories by default
+		if len(post.Categories) != 0 {
+			t.Errorf("expected 0 categories populated by default, got %d", len(post.Categories))
+		}
+
+		// Explicitly fetch and populate categories
+		catMap, err := PostCategories(db, []int64{postID})
+		if err != nil {
+			t.Fatalf("PostCategories() unexpected error = %v", err)
+		}
+		post.Categories = catMap[postID]
+
 		if len(post.Categories) != 2 {
-			t.Fatalf("len(post.Categories) = %d, want 2", len(post.Categories))
+			t.Fatalf("len(post.Categories) = %d, want 2 after explicit loading", len(post.Categories))
 		}
 
 		// Verify category names
@@ -273,11 +287,26 @@ func TestGetPost(t *testing.T) {
 			t.Fatalf("GetPost() with reactions unexpected error = %v", err)
 		}
 
+		// Verify that GetPost does not populate reaction counts by default
+		if postWithReactions.Likes != 0 || postWithReactions.Dislikes != 0 {
+			t.Errorf("expected 0 likes/dislikes by default, got Likes=%d, Dislikes=%d", postWithReactions.Likes, postWithReactions.Dislikes)
+		}
+
+		// Explicitly fetch and populate reaction counts
+		reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
+		if err != nil {
+			t.Fatalf("CountReactions() unexpected error = %v", err)
+		}
+		if counts, ok := reactionMap[postID]; ok {
+			postWithReactions.Likes = counts.Likes
+			postWithReactions.Dislikes = counts.Dislikes
+		}
+
 		if postWithReactions.Likes != 1 {
-			t.Errorf("post.Likes = %d, want 1", postWithReactions.Likes)
+			t.Errorf("post.Likes = %d, want 1 after explicit loading", postWithReactions.Likes)
 		}
 		if postWithReactions.Dislikes != 1 {
-			t.Errorf("post.Dislikes = %d, want 1", postWithReactions.Dislikes)
+			t.Errorf("post.Dislikes = %d, want 1 after explicit loading", postWithReactions.Dislikes)
 		}
 	})
 
@@ -399,8 +428,18 @@ func TestListPosts(t *testing.T) {
 			t.Errorf("posts[0].ID = %d, want %d", posts[0].ID, postID2)
 		}
 
+		// Explicitly fetch and populate reaction counts
+		reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID2})
+		if err != nil {
+			t.Fatalf("CountReactions() error = %v", err)
+		}
+		if counts, ok := reactionMap[postID2]; ok {
+			posts[0].Likes = counts.Likes
+			posts[0].Dislikes = counts.Dislikes
+		}
+
 		if posts[0].Likes != 1 {
-			t.Errorf("posts[0].Likes = %d, want 1", posts[0].Likes)
+			t.Errorf("posts[0].Likes = %d, want 1 after explicit loading", posts[0].Likes)
 		}
 	})
 }
