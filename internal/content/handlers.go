@@ -182,6 +182,26 @@ func PostViewHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Batch load reaction counts for all comments
+		var commentIDs []int64
+		for _, c := range comments {
+			commentIDs = append(commentIDs, c.ID)
+		}
+		if len(commentIDs) > 0 {
+			commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
+				return
+			}
+			for i := range comments {
+				id := comments[i].ID
+				if counts, ok := commentReactionMap[id]; ok {
+					comments[i].Likes = counts.Likes
+					comments[i].Dislikes = counts.Dislikes
+				}
+			}
+		}
+
 		currentUser, _ := auth.UserFromContext(r.Context())
 
 		data := PostPageData{
@@ -349,6 +369,26 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 			if err != nil {
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not load comments.")
 				return
+			}
+
+			// Batch load reaction counts for all comments
+			var commentIDs []int64
+			for _, c := range comments {
+				commentIDs = append(commentIDs, c.ID)
+			}
+			if len(commentIDs) > 0 {
+				commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+				if err != nil {
+					webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
+					return
+				}
+				for i := range comments {
+					id := comments[i].ID
+					if counts, ok := commentReactionMap[id]; ok {
+						comments[i].Likes = counts.Likes
+						comments[i].Dislikes = counts.Dislikes
+					}
+				}
 			}
 
 			data := PostPageData{
