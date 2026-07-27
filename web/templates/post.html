@@ -12,7 +12,7 @@
 <main class="container">
     <article class="post">
         <h1 class="post__title">{{.Post.Title}}</h1>
-        <p class="post__meta">by {{.Post.Author}} on {{.Post.CreatedAt.Format "2006-01-02"}}</p>
+        <p class="post__meta">by {{.Post.Author}} on <time datetime="{{.Post.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.Post.CreatedAt.Format "2006-01-02"}}</time></p>
         <p class="post__body">{{.Post.Body}}</p>
         <ul class="post__categories">
             {{range .Post.Categories}}
@@ -43,7 +43,7 @@
 
         {{range .Comments}}
             <article class="comment">
-                <p class="comment__meta">{{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+                <p class="comment__meta">{{.Author}} on <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.CreatedAt.Format "2006-01-02"}}</time></p>
                 <p class="comment__body">{{.Body}}</p>
 
                 {{if $.CurrentUser}}

@@ -24,7 +24,7 @@
     {{range .Posts}}
         <article class="post post--summary">
             <h2 class="post__title"><a href="/posts/{{.ID}}">{{.Title}}</a></h2>
-            <p class="post__meta">by {{.Author}} on {{.CreatedAt.Format "2006-01-02"}}</p>
+            <p class="post__meta">by {{.Author}} on <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.CreatedAt.Format "2006-01-02"}}</time></p>
             <p class="post__body">{{.Body}}</p>
             <ul class="post__categories">
                 {{range .Categories}}

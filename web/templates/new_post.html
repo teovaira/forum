@@ -18,7 +18,10 @@
 
     <form method="post" action="/posts" class="post-form">
         <label class="post-form__field">Title <input type="text" name="title"></label>
-        <label class="post-form__field">Body <textarea name="body"></textarea></label>
+        <label class="post-form__field">
+            Body <textarea name="body" class="post-form__body"></textarea>
+            <span class="post-form__char-count">0 characters</span>
+        </label>
 
         <fieldset class="post-form__categories">
             <legend>Demographic</legend>

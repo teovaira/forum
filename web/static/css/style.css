@@ -298,6 +298,12 @@ a {
     font-size: var(--font-size-sm);
 }
 
+.post-form__char-count {
+    align-self: flex-end;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
 .post-form__categories {
     display: flex;
     flex-wrap: wrap;
@@ -397,4 +403,75 @@ textarea {
 .error-page__message {
     color: var(--color-text-secondary);
     margin: 0 0 var(--space-6);
+}
+
+/* modal — used for the logout confirmation dialog */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.modal__dialog {
+    position: relative;
+    max-width: 320px;
+    margin: 0 var(--space-4);
+    padding: var(--space-6);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glow-purple), var(--shadow-lg);
+}
+
+.modal__title {
+    margin: 0 0 var(--space-5);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+}
+
+.modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
+.modal__button {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.modal__button--cancel:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-text-secondary);
+}
+
+.modal__button--confirm {
+    background: var(--color-accent-purple);
+    color: var(--color-text-primary);
+    border-color: transparent;
+}
+
+.modal__button--confirm:hover {
+    background: var(--color-accent-purple-hover);
+    box-shadow: var(--glow-purple);
 }

@@ -8,9 +8,19 @@
             <a href="/?filter=mine">My Posts</a>
             <a href="/?filter=liked">Liked Posts</a>
             <span class="site-header__user">{{.CurrentUser.Username}}</span>
-            <form method="post" action="/logout">
+            <form method="post" action="/logout" class="logout-form">
                 <button type="submit" class="site-header__logout">Log Out</button>
             </form>
+            <div id="logout-modal" class="modal" hidden>
+                <div class="modal__backdrop" data-modal-close></div>
+                <div class="modal__dialog" role="alertdialog" aria-modal="true" aria-labelledby="logout-modal-title">
+                    <p id="logout-modal-title" class="modal__title">Log out of your account?</p>
+                    <div class="modal__actions">
+                        <button type="button" class="modal__button modal__button--cancel" data-modal-close>Cancel</button>
+                        <button type="button" class="modal__button modal__button--confirm" id="logout-modal-confirm">Log Out</button>
+                    </div>
+                </div>
+            </div>
         {{else}}
             <a href="/login">Log In</a>
             <a href="/register">Register</a>
@@ -29,4 +39,5 @@
 <footer class="site-footer">
     <p>Forum</p>
 </footer>
+<script src="/static/js/main.js" defer></script>
 {{end}}
