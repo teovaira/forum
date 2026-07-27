@@ -84,6 +84,35 @@ func HomeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Batch fetch categories and reaction counts for the loaded posts
+		var postIDs []int64
+		for _, p := range posts {
+			postIDs = append(postIDs, p.ID)
+		}
+
+		if len(postIDs) > 0 {
+			postCatMap, err := PostCategories(db, postIDs)
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for posts.")
+				return
+			}
+
+			reactionMap, err := CountReactions(db, models.TargetPost, postIDs)
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for posts.")
+				return
+			}
+
+			for i := range posts {
+				id := posts[i].ID
+				posts[i].Categories = postCatMap[id]
+				if counts, ok := reactionMap[id]; ok {
+					posts[i].Likes = counts.Likes
+					posts[i].Dislikes = counts.Dislikes
+				}
+			}
+		}
+
 		categories, err := ListCategories(db)
 		if err != nil {
 			webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories.")
@@ -128,10 +157,49 @@ func PostViewHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Load categories for the single post
+		postCatMap, err := PostCategories(db, []int64{postID})
+		if err != nil {
+			webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for post.")
+			return
+		}
+		post.Categories = postCatMap[postID]
+
+		// Load reaction counts for the single post
+		reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
+		if err != nil {
+			webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for post.")
+			return
+		}
+		if counts, ok := reactionMap[postID]; ok {
+			post.Likes = counts.Likes
+			post.Dislikes = counts.Dislikes
+		}
+
 		comments, err := ListComments(db, postID)
 		if err != nil {
 			webutil.RenderError(w, http.StatusInternalServerError, "Could not load comments.")
 			return
+		}
+
+		// Batch load reaction counts for all comments
+		var commentIDs []int64
+		for _, c := range comments {
+			commentIDs = append(commentIDs, c.ID)
+		}
+		if len(commentIDs) > 0 {
+			commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
+				return
+			}
+			for i := range comments {
+				id := comments[i].ID
+				if counts, ok := commentReactionMap[id]; ok {
+					comments[i].Likes = counts.Likes
+					comments[i].Dislikes = counts.Dislikes
+				}
+			}
 		}
 
 		currentUser, _ := auth.UserFromContext(r.Context())
@@ -278,10 +346,49 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			// Load categories for the single post
+			postCatMap, err := PostCategories(db, []int64{postID})
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for post.")
+				return
+			}
+			post.Categories = postCatMap[postID]
+
+			// Load reaction counts for the single post
+			reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
+			if err != nil {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for post.")
+				return
+			}
+			if counts, ok := reactionMap[postID]; ok {
+				post.Likes = counts.Likes
+				post.Dislikes = counts.Dislikes
+			}
+
 			comments, err := ListComments(db, postID)
 			if err != nil {
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not load comments.")
 				return
+			}
+
+			// Batch load reaction counts for all comments
+			var commentIDs []int64
+			for _, c := range comments {
+				commentIDs = append(commentIDs, c.ID)
+			}
+			if len(commentIDs) > 0 {
+				commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+				if err != nil {
+					webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
+					return
+				}
+				for i := range comments {
+					id := comments[i].ID
+					if counts, ok := commentReactionMap[id]; ok {
+						comments[i].Likes = counts.Likes
+						comments[i].Dislikes = counts.Dislikes
+					}
+				}
 			}
 
 			data := PostPageData{

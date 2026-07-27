@@ -92,9 +92,9 @@ func CreatePost(db *sql.DB, userID int64, title, body string, categoryIDs []int6
 
 // GetPost retrieves a single post by ID.
 //
-// It joins the posts table with the users table to fetch the author's username,
-// loads the post's categories, and queries its reactions count using the
-// CountReactions helper.
+// It joins the posts table with the users table to fetch the author's username.
+// It does not populate categories or reaction counts; that logic is decoupled
+// to be called at the handler level.
 //
 // Parameters:
 //   - db: An open SQLite database connection.
@@ -124,48 +124,14 @@ func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
 		return nil, err
 	}
 
-	// Fetch categories
-	rows, err := db.Query(
-		`SELECT c.id, c.name, c.kind
-		 FROM post_categories pc
-		 JOIN categories c ON pc.category_id = c.id
-		 WHERE pc.post_id = ?`,
-		postID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var cat models.Category
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Kind); err != nil {
-			return nil, err
-		}
-		post.Categories = append(post.Categories, cat)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	// Fetch reactions
-	reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
-	if err != nil {
-		return nil, err
-	}
-
-	if counts, ok := reactionMap[postID]; ok {
-		post.Likes = counts.Likes
-		post.Dislikes = counts.Dislikes
-	}
-
 	return &post, nil
 }
 
 // ListPosts retrieves a list of posts matching the filter.
 //
-// It queries posts and joins with the users table. Categories and reactions are
-// fetched in batch to optimize performance. Posts are ordered by created_at DESC.
+// It queries posts and joins with the users table. It does not populate categories
+// or reaction counts; that logic is decoupled to be called at the handler level.
+// Posts are ordered by created_at DESC.
 //
 // Parameters:
 //   - db: An open SQLite database connection.
@@ -236,7 +202,6 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 	defer rows.Close()
 
 	var posts []models.Post
-	var postIDs []int64
 
 	for rows.Next() {
 		var post models.Post
@@ -250,7 +215,6 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 			return nil, err
 		}
 		posts = append(posts, post)
-		postIDs = append(postIDs, post.ID)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -259,51 +223,6 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 
 	if len(posts) == 0 {
 		return []models.Post{}, nil
-	}
-
-	// Fetch categories for all returned posts in batch
-	var pcQuery string
-	var pcArgs []any
-	var pcPlaceholders []string
-	for _, id := range postIDs {
-		pcPlaceholders = append(pcPlaceholders, "?")
-		pcArgs = append(pcArgs, id)
-	}
-	pcQuery = "SELECT pc.post_id, c.id, c.name, c.kind FROM post_categories pc JOIN categories c ON pc.category_id = c.id WHERE pc.post_id IN (" + strings.Join(pcPlaceholders, ", ") + ")"
-
-	pcRows, err := db.Query(pcQuery, pcArgs...)
-	if err != nil {
-		return nil, err
-	}
-	defer pcRows.Close()
-
-	postCatMap := make(map[int64][]models.Category)
-	for pcRows.Next() {
-		var postID int64
-		var cat models.Category
-		if err := pcRows.Scan(&postID, &cat.ID, &cat.Name, &cat.Kind); err != nil {
-			return nil, err
-		}
-		postCatMap[postID] = append(postCatMap[postID], cat)
-	}
-	if err = pcRows.Err(); err != nil {
-		return nil, err
-	}
-
-	// Fetch reactions for all returned posts in batch
-	reactionMap, err := CountReactions(db, models.TargetPost, postIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Populate the categories and reaction counts on posts
-	for i := range posts {
-		id := posts[i].ID
-		posts[i].Categories = postCatMap[id]
-		if counts, ok := reactionMap[id]; ok {
-			posts[i].Likes = counts.Likes
-			posts[i].Dislikes = counts.Dislikes
-		}
 	}
 
 	return posts, nil

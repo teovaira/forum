@@ -53,8 +53,8 @@ func CreateComment(db *sql.DB, postID, userID int64, body string) (int64, error)
 // ListComments retrieves all comments for a post.
 //
 // It joins the comments table with the users table to fetch the author's username,
-// orders comments by created_at ASC, and queries comment reactions using the
-// CountReactions helper.
+// and orders comments by created_at ASC. It does not populate comment reaction
+// counts; that logic is decoupled to be called at the handler level.
 //
 // Parameters:
 //   - db: An open SQLite database connection.
@@ -78,7 +78,6 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 	defer rows.Close()
 
 	var comments []models.Comment
-	var commentIDs []int64
 
 	for rows.Next() {
 		var comment models.Comment
@@ -92,7 +91,6 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 			return nil, err
 		}
 		comments = append(comments, comment)
-		commentIDs = append(commentIDs, comment.ID)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -101,21 +99,6 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 
 	if len(comments) == 0 {
 		return []models.Comment{}, nil
-	}
-
-	// Fetch reactions for all comments in batch
-	reactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Populate reactions
-	for i := range comments {
-		id := comments[i].ID
-		if counts, ok := reactionMap[id]; ok {
-			comments[i].Likes = counts.Likes
-			comments[i].Dislikes = counts.Dislikes
-		}
 	}
 
 	return comments, nil

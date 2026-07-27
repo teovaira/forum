@@ -3,6 +3,8 @@ package content
 import (
 	"strings"
 	"testing"
+
+	"forum/internal/models"
 )
 
 func TestCreateComment(t *testing.T) {
@@ -171,6 +173,29 @@ func TestListComments(t *testing.T) {
 
 		if len(commentsWithReactions) != 2 {
 			t.Fatalf("ListComments() with reactions returned %d comments, want 2", len(commentsWithReactions))
+		}
+
+		// Verify that they do not load reactions by default
+		if commentsWithReactions[0].Likes != 0 || commentsWithReactions[0].Dislikes != 0 {
+			t.Errorf("expected comment 1 to have 0 reactions by default, got Likes=%d, Dislikes=%d",
+				commentsWithReactions[0].Likes, commentsWithReactions[0].Dislikes)
+		}
+
+		// Explicitly load reactions
+		var commentIDs []int64
+		for _, c := range commentsWithReactions {
+			commentIDs = append(commentIDs, c.ID)
+		}
+		reactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+		if err != nil {
+			t.Fatalf("CountReactions() error = %v", err)
+		}
+		for i := range commentsWithReactions {
+			id := commentsWithReactions[i].ID
+			if counts, ok := reactionMap[id]; ok {
+				commentsWithReactions[i].Likes = counts.Likes
+				commentsWithReactions[i].Dislikes = counts.Dislikes
+			}
 		}
 
 		if commentsWithReactions[0].Likes != 1 || commentsWithReactions[0].Dislikes != 0 {
