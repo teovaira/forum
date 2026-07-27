@@ -78,7 +78,6 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 	defer rows.Close()
 
 	var comments []models.Comment
-	var commentIDs []int64
 
 	for rows.Next() {
 		var comment models.Comment
@@ -92,7 +91,6 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 			return nil, err
 		}
 		comments = append(comments, comment)
-		commentIDs = append(commentIDs, comment.ID)
 	}
 
 	if err = rows.Err(); err != nil {
