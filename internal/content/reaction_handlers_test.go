@@ -423,14 +423,32 @@ func TestReactPostHandlerReturnsInternalServerErrorWhenDatabaseFails(t *testing.
 	db := setupReactionHandlerTestDB(t)
 	seedReactionHandlerTestData(t, db)
 
-	h := newReactionPostTestHandler(db)
+	mux := http.NewServeMux()
+	mux.Handle(
+		"POST /posts/{id}/{reaction}",
+		ReactPostHandler(db),
+	)
 
-	if err := db.Close(); err != nil {
-		t.Fatalf("close test database: %v", err)
-	}
+	h := auth.WithUser(db)(
+		auth.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if err := db.Close(); err != nil {
+					t.Fatalf("close test database: %v", err)
+				}
+
+				mux.ServeHTTP(w, r)
+			}),
+		),
+	)
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, newAuthenticatedReactionRequest(http.MethodPost, "/posts/1/like", ""))
+	req := newAuthenticatedReactionRequest(
+		http.MethodPost,
+		"/posts/1/like",
+		"",
+	)
+
+	h.ServeHTTP(rec, req)
 
 	assertHandlerStatus(t, rec, http.StatusInternalServerError)
 }
