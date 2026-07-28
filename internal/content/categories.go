@@ -9,6 +9,7 @@ package content
 
 import (
 	"database/sql"
+	"fmt"
 	"forum/internal/models"
 )
 
@@ -27,19 +28,19 @@ func ListCategories(db *sql.DB) ([]models.Category, error) {
 	var categories []models.Category
 	rows, err := db.Query("SELECT id, name, kind FROM categories")
 	if err != nil {
-		return categories, err
+		return categories, fmt.Errorf("query categories: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var category models.Category
 		err = rows.Scan(&category.ID, &category.Name, &category.Kind)
 		if err != nil {
-			return categories, err
+			return categories, fmt.Errorf("scan category row: %w", err)
 		}
 		categories = append(categories, category)
 	}
 	if err := rows.Err(); err != nil {
-		return categories, err
+		return categories, fmt.Errorf("iterate category rows: %w", err)
 	}
 	if len(categories) == 0 {
 		return []models.Category{}, nil
@@ -63,19 +64,31 @@ func PostIDsInCategory(db *sql.DB, categoryID int64) ([]int64, error) {
 	var postIDs []int64
 	rows, err := db.Query("SELECT post_id FROM post_categories WHERE category_id=?", categoryID)
 	if err != nil {
-		return postIDs, err
+		return postIDs, fmt.Errorf(
+			"query post IDs for category %d: %w",
+			categoryID,
+			err,
+		)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var postID int64
 		err = rows.Scan(&postID)
 		if err != nil {
-			return postIDs, err
+			return postIDs, fmt.Errorf(
+				"scan post ID for category %d: %w",
+				categoryID,
+				err,
+			)
 		}
 		postIDs = append(postIDs, postID)
 	}
 	if err = rows.Err(); err != nil {
-		return postIDs, err
+		return postIDs, fmt.Errorf(
+			"iterate post ID rows for category %d: %w",
+			categoryID,
+			err,
+		)
 	}
 	if len(postIDs) == 0 {
 		return []int64{}, nil
