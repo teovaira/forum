@@ -21,10 +21,15 @@ const sessionCookieName = "session_token"
 // INSERT agrees on the same layout, instead of each call site formatting
 // "now" independently and risking drift if the layout ever changes.
 //
+// The time is normalized to UTC because GetSessionUser compares expires_at
+// as a plain SQL string: an offset such as "+03:00" does not order against
+// a "Z" suffix by real instant, so a server outside UTC would otherwise
+// read still-valid sessions as expired.
+//
 // Returns:
-//   - string: the current time formatted as RFC3339.
+//   - string: the current UTC time formatted as RFC3339.
 func nowString() string {
-	return time.Now().Format(time.RFC3339)
+	return time.Now().UTC().Format(time.RFC3339)
 }
 
 // CreateSession issues a new session for userID, replacing any session that
@@ -48,7 +53,7 @@ func CreateSession(db *sql.DB, userID int64) (token string, expiresAt time.Time,
 	}
 
 	token = uuid.NewString()
-	expiresAt = time.Now().Add(sessionDuration)
+	expiresAt = time.Now().UTC().Add(sessionDuration)
 
 	_, err = db.Exec(
 		"INSERT INTO sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
