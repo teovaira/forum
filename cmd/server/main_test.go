@@ -1,7 +1,11 @@
 package main
 
 import (
+	"forum/internal/database"
+	"forum/internal/webutil"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 )
@@ -85,6 +89,71 @@ func TestParseTemplates(t *testing.T) {
 	t.Run("returns an error for a directory with no templates", func(t *testing.T) {
 		if _, err := parseTemplates(t.TempDir()); err == nil {
 			t.Error("parseTemplates() error = nil, want an error for an empty directory")
+		}
+	})
+}
+
+func TestBuildHandler(t *testing.T) {
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("database.Connect() error = %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if err := database.Init(db); err != nil {
+		t.Fatalf("database.Init() error = %v", err)
+	}
+
+	templates, err := parseTemplates(filepath.Join("..", "..", "web", "templates"))
+	if err != nil {
+		t.Fatalf("parseTemplates() error = %v", err)
+	}
+	webutil.SetTemplates(templates)
+
+	handler := buildHandler(db, filepath.Join("..", "..", "web", "static"))
+
+	get := func(target string) *http.Response {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+		return rec.Result()
+	}
+
+	t.Run("content routes are registered", func(t *testing.T) {
+		if got := get("/").StatusCode; got == http.StatusNotFound {
+			t.Errorf("GET / status = %d, want registered (not 404)", got)
+		}
+	})
+
+	t.Run("auth routes are registered", func(t *testing.T) {
+		if got := get("/login").StatusCode; got == http.StatusNotFound {
+			t.Errorf("GET /login status = %d, want registered (not 404)", got)
+		}
+	})
+
+	t.Run("static routes are registered", func(t *testing.T) {
+		if got := get("/static/").StatusCode; got == http.StatusNotFound {
+			t.Errorf("GET /static/ status = %d, want registered (not 404)", got)
+		}
+	})
+
+	t.Run("method-aware patterns still 405 on a mismatch", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/login", nil))
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("DELETE /login status = %d, want %d", rec.Code, http.StatusMethodNotAllowed)
+		}
+	})
+
+	// content.RegisterRoutes wraps this route in auth.RequireAuth internally;
+	// buildHandler must apply WithUser globally so RequireAuth has a context
+	// to read. Without it, this would 401 exactly the same on the surface,
+	// but for the wrong reason (context never populated at all) rather than
+	// the right one (no session cookie present).
+	t.Run("a protected route blocks a guest without panicking", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/posts/new", nil))
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("GET /posts/new as guest status = %d, want %d", rec.Code, http.StatusUnauthorized)
 		}
 	})
 }
