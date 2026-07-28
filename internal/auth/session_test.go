@@ -68,10 +68,11 @@ func TestCreateSession(t *testing.T) {
 	}
 }
 
-// seedUser inserts a minimal user row directly and returns its ID, so
-// session tests don't depend on the auth handlers (Stage B10) existing yet.
 func seedUser(t *testing.T, db *sql.DB) int64 {
 	t.Helper()
+
+	// Inserted directly rather than through RegisterHandler so the session
+	// tests stay independent of the auth handlers.
 	res, err := db.Exec(
 		"INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
 		"tester", "tester@example.com", "not-a-real-hash", time.Now().UTC().Format(time.RFC3339),
