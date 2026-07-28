@@ -3,7 +3,11 @@
 // listening for HTTP requests.
 package main
 
-import "os"
+import (
+	"html/template"
+	"os"
+	"path/filepath"
+)
 
 // lookupEnv returns the value of the environment variable named key, falling
 // back to fallback when that variable is unset or empty. An empty value is
@@ -22,4 +26,22 @@ func lookupEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// parseTemplates parses every .html file in dir into a single template set.
+// They must be parsed together, not individually, because the page templates
+// invoke the shared blocks layout.html defines; a per-file parse would leave
+// those blocks undefined at execution time.
+//
+// ParseGlob registers each file under its base name ("home.html"), which is
+// the lookup key webutil.RenderTemplate and RenderError use.
+//
+// Parameters:
+//   - dir: the directory holding the .html templates, e.g. "web/templates".
+//
+// Returns:
+//   - *template.Template: the parsed set, ready for webutil.SetTemplates.
+//   - error: non-nil if dir contains no .html files or one fails to parse.
+func parseTemplates(dir string) (*template.Template, error) {
+	return template.ParseGlob(filepath.Join(dir, "*.html"))
 }
