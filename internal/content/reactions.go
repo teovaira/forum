@@ -1,10 +1,3 @@
-// Package content provides data access functions for forum content.
-//
-// The package contains repository functions that retrieve and manipulate
-// forum data stored in the SQLite database, including categories, posts,
-// comments, and reactions. Each function encapsulates the required SQL
-// queries and returns Go data structures for use by the rest of the
-// application.
 package content
 
 import (
