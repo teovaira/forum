@@ -4,9 +4,15 @@
 package main
 
 import (
+	"database/sql"
 	"html/template"
+	"net/http"
 	"os"
 	"path/filepath"
+
+	"forum/internal/auth"
+	"forum/internal/content"
+	"forum/internal/webutil"
 )
 
 // lookupEnv returns the value of the environment variable named key, falling
@@ -44,4 +50,29 @@ func lookupEnv(key, fallback string) string {
 //   - error: non-nil if dir contains no .html files or one fails to parse.
 func parseTemplates(dir string) (*template.Template, error) {
 	return template.ParseGlob(filepath.Join(dir, "*.html"))
+}
+
+// buildHandler assembles the full request-handling pipeline: every package's
+// routes on one mux, wrapped in auth.WithUser so a request's session is
+// resolved before any handler runs.
+//
+// content.RegisterRoutes already wraps its own protected routes in
+// auth.RequireAuth, so WithUser must be the only middleware applied here —
+// adding RequireAuth again at this layer would block every route, since a
+// route that isn't behind RequireAuth would suddenly require a session too.
+//
+// Parameters:
+//   - db: an open connection pool, passed through to every package's routes.
+//   - staticDir: the directory served at /static/, e.g. "web/static".
+//
+// Returns:
+//   - http.Handler: the complete handler for http.ListenAndServe.
+func buildHandler(db *sql.DB, staticDir string) http.Handler {
+	mux := http.NewServeMux()
+
+	auth.RegisterRoutes(mux, db)
+	content.RegisterRoutes(mux, db)
+	webutil.RegisterRoutes(mux, staticDir)
+
+	return auth.WithUser(db)(mux)
 }
