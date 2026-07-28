@@ -6,12 +6,14 @@ package main
 import (
 	"database/sql"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"forum/internal/auth"
 	"forum/internal/content"
+	"forum/internal/database"
 	"forum/internal/webutil"
 )
 
@@ -75,4 +77,37 @@ func buildHandler(db *sql.DB, staticDir string) http.Handler {
 	webutil.RegisterRoutes(mux, staticDir)
 
 	return auth.WithUser(db)(mux)
+}
+
+// main starts the forum server: it opens the database, loads the page
+// templates, wires every package's routes onto one handler, and listens for
+// HTTP requests until the process is stopped.
+//
+// Both web/templates and web/static are read via relative paths, so the
+// server must be run from the repository root (as Docker's WORKDIR and
+// `go run ./cmd/server` both do).
+func main() {
+	port := lookupEnv("PORT", "8080")
+	dbPath := lookupEnv("DB_PATH", "./forum.db")
+
+	db, err := database.Connect(dbPath)
+	if err != nil {
+		log.Fatalf("connect to database: %v", err)
+	}
+	defer db.Close()
+
+	if err := database.Init(db); err != nil {
+		log.Fatalf("initialize schema: %v", err)
+	}
+
+	templates, err := parseTemplates("web/templates")
+	if err != nil {
+		log.Fatalf("parse templates: %v", err)
+	}
+	webutil.SetTemplates(templates)
+
+	handler := buildHandler(db, "web/static")
+
+	log.Printf("listening on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
