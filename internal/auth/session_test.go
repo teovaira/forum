@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,5 +189,73 @@ func TestDestroySession(t *testing.T) {
 	// logout is idempotent.
 	if err := DestroySession(db, token); err != nil {
 		t.Errorf("destroying an already-destroyed token should not error, got: %v", err)
+	}
+}
+
+func TestCreateSessionStoresTimestampsInUTC(t *testing.T) {
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("Connect returned an error: %v", err)
+	}
+	defer db.Close()
+	if err := database.Init(db); err != nil {
+		t.Fatalf("Init returned an error: %v", err)
+	}
+
+	token, _, err := CreateSession(db, seedUser(t, db))
+	if err != nil {
+		t.Fatalf("CreateSession returned an error: %v", err)
+	}
+
+	var expiresAt, createdAt string
+	err = db.QueryRow(
+		"SELECT expires_at, created_at FROM sessions WHERE token = ?", token,
+	).Scan(&expiresAt, &createdAt)
+	if err != nil {
+		t.Fatalf("failed to read the session row: %v", err)
+	}
+
+	for _, column := range []struct{ name, value string }{
+		{"expires_at", expiresAt},
+		{"created_at", createdAt},
+	} {
+		if !strings.HasSuffix(column.value, "Z") {
+			t.Errorf("%s = %q, want a UTC timestamp ending in Z", column.name, column.value)
+		}
+	}
+}
+
+func TestGetSessionUserAcceptsSessionStoredInUTC(t *testing.T) {
+	db, err := database.Connect(":memory:")
+	if err != nil {
+		t.Fatalf("Connect returned an error: %v", err)
+	}
+	defer db.Close()
+	if err := database.Init(db); err != nil {
+		t.Fatalf("Init returned an error: %v", err)
+	}
+
+	// expires_at is compared as a plain SQL string, so a row written in UTC
+	// must still resolve on a server whose local zone is not UTC.
+	now := time.Now().UTC()
+	_, err = db.Exec(
+		"INSERT INTO sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+		"utc-stored-token", seedUser(t, db),
+		now.Add(time.Hour).Format(time.RFC3339),
+		now.Format(time.RFC3339),
+	)
+	if err != nil {
+		t.Fatalf("failed to insert a UTC session: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "utc-stored-token"})
+
+	user, err := GetSessionUser(db, r)
+	if err != nil {
+		t.Fatalf("GetSessionUser returned an error: %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected a user for a session expiring in one hour, got nil")
 	}
 }
