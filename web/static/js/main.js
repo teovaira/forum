@@ -10,6 +10,8 @@ function setupLogoutConfirm() {
     if (!form || !modal) return;
 
     var confirmButton = document.getElementById('logout-modal-confirm');
+    if (!confirmButton) return;
+
     var closeTriggers = modal.querySelectorAll('[data-modal-close]');
 
     function closeModal() {

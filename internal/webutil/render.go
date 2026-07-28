@@ -20,6 +20,9 @@ var templates *template.Template
 // SetTemplates installs the template set RenderTemplate will execute
 // against. cmd/server calls this once at startup with the real templates
 // parsed from web/templates/*.html.
+//
+// Parameters:
+//   - t: The parsed template set to render against.
 func SetTemplates(t *template.Template) {
 	templates = t
 }
@@ -27,6 +30,14 @@ func SetTemplates(t *template.Template) {
 // RenderTemplate executes the named template with data and writes the
 // result to w. It renders into a buffer first so a template execution
 // error never leaves a half-written page in the response.
+//
+// Parameters:
+//   - w: The response writer the rendered page is written to.
+//   - name: The template name to execute, as registered with SetTemplates.
+//   - data: The view-data passed to the template.
+//
+// Returns:
+//   - An error if the template fails to execute or the buffer fails to write.
 func RenderTemplate(w http.ResponseWriter, name string, data any) error {
 	var buf bytes.Buffer
 	if err := templates.ExecuteTemplate(&buf, name, data); err != nil {
@@ -49,6 +60,11 @@ type ErrorPageData struct {
 // fails to execute, the response falls back to a plain-text body instead of
 // silently sending nothing — an error path is the one place a rendering
 // failure must never go unnoticed.
+//
+// Parameters:
+//   - w: The response writer the status code and rendered page are written to.
+//   - statusCode: The HTTP status code to send.
+//   - message: The user-facing error message shown on the page.
 func RenderError(w http.ResponseWriter, statusCode int, message string) {
 	data := ErrorPageData{StatusCode: statusCode, Message: message}
 
