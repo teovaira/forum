@@ -22,7 +22,9 @@ func TestCreateSession(t *testing.T) {
 		t.Fatalf("Init returned an error: %v", err)
 	}
 
-	const userID int64 = 1
+	// sessions.user_id is a foreign key, so the row must exist before a
+	// session can reference it.
+	userID := seedUser(t, db)
 
 	token1, expiresAt, err := CreateSession(db, userID)
 	if err != nil {
@@ -32,7 +34,7 @@ func TestCreateSession(t *testing.T) {
 		t.Fatal("CreateSession returned an empty token")
 	}
 
-	wantExpiry := time.Now().Add(2 * time.Hour)
+	wantExpiry := time.Now().UTC().Add(2 * time.Hour)
 	if expiresAt.Before(wantExpiry.Add(-time.Minute)) || expiresAt.After(wantExpiry.Add(time.Minute)) {
 		t.Errorf("expiresAt = %v, want roughly %v (2h from now)", expiresAt, wantExpiry)
 	}
@@ -72,7 +74,7 @@ func seedUser(t *testing.T, db *sql.DB) int64 {
 	t.Helper()
 	res, err := db.Exec(
 		"INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-		"tester", "tester@example.com", "not-a-real-hash", time.Now().Format(time.RFC3339),
+		"tester", "tester@example.com", "not-a-real-hash", time.Now().UTC().Format(time.RFC3339),
 	)
 	if err != nil {
 		t.Fatalf("failed to seed user: %v", err)
@@ -136,7 +138,7 @@ func TestGetSessionUser(t *testing.T) {
 		}
 		// Force this session into the past directly, bypassing CreateSession's
 		// fixed 2h duration, so the test can assert expiry is enforced.
-		past := time.Now().Add(-time.Hour).Format(time.RFC3339)
+		past := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)
 		if _, err := db.Exec("UPDATE sessions SET expires_at = ? WHERE token = ?", past, token); err != nil {
 			t.Fatalf("failed to backdate session: %v", err)
 		}
