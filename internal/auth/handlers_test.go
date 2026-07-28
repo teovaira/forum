@@ -3,16 +3,31 @@ package auth
 import (
 	"database/sql"
 	"errors"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/mattn/go-sqlite3"
 
 	"forum/internal/database"
+	"forum/internal/webutil"
 )
+
+func TestMain(m *testing.M) {
+	// webutil.RenderTemplate dereferences its package-level template set, so
+	// without a stub installed here every handler path that re-renders a form
+	// panics on a nil pointer instead of failing the assertion under test.
+	webutil.SetTemplates(template.Must(template.New("test").Parse(
+		`{{define "register.html"}}register: {{.ErrorMessage}}{{end}}` +
+			`{{define "login.html"}}login: {{.ErrorMessage}}{{end}}` +
+			`{{define "error.html"}}error {{.StatusCode}}: {{.Message}}{{end}}`,
+	)))
+	os.Exit(m.Run())
+}
 
 func newFormRequest(path string, form url.Values) *http.Request {
 	r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
