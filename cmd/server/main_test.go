@@ -163,14 +163,11 @@ func TestBuildHandler(t *testing.T) {
 	})
 }
 
-// newTestServer boots the real router and template set against a fresh
-// in-memory database, so the end-to-end tests exercise the actual wiring
-// buildHandler produces rather than a hand-assembled substitute. It returns
-// the database handle too, so a test can verify the audit's "SELECT * FROM
-// users/posts/comments" checks directly against the same rows the HTTP
-// requests wrote.
 func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 	t.Helper()
+
+	// Returns the db handle alongside the server so a test can assert
+	// against the same rows the HTTP requests wrote.
 
 	db, err := database.Connect(":memory:")
 	if err != nil {
@@ -192,10 +189,6 @@ func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 	return server, db
 }
 
-// newTestClient returns an http.Client with a cookie jar, so the session
-// cookie set by /register or /login is carried automatically on later
-// requests, and configured not to follow redirects, so tests can assert on
-// the redirect itself (target and status) rather than its destination page.
 func newTestClient(t *testing.T) *http.Client {
 	t.Helper()
 
@@ -205,17 +198,19 @@ func newTestClient(t *testing.T) *http.Client {
 	}
 	return &http.Client{
 		Jar: jar,
+		// Redirects are not followed so tests can assert on the redirect
+		// itself rather than on its destination page.
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
 }
 
-// firstCategoryID returns the ID of a seeded category, so the end-to-end
-// test can submit a real "categories" value without hardcoding a row ID the
-// schema's auto-increment does not guarantee.
 func firstCategoryID(t *testing.T, server *httptest.Server, client *http.Client) int64 {
 	t.Helper()
+
+	// Scraped from the form rather than hardcoded, because the schema's
+	// auto-increment does not guarantee any particular category ID.
 
 	resp, err := client.Get(server.URL + "/posts/new")
 	if err != nil {
@@ -245,9 +240,6 @@ func firstCategoryID(t *testing.T, server *httptest.Server, client *http.Client)
 	return id
 }
 
-// TestEndToEndForumJourney drives the full register -> post -> comment ->
-// react -> logout flow through the real HTTP server, the way the audit's
-// manual walkthrough does, rather than through package-level mocks.
 func TestEndToEndForumJourney(t *testing.T) {
 	server, _ := newTestServer(t)
 	client := newTestClient(t)
@@ -397,10 +389,6 @@ func TestEndToEndForumJourney(t *testing.T) {
 	})
 }
 
-// TestEndToEndCategoryFilter verifies the audit's "filter posts by category"
-// walkthrough against the real router: a post tagged with a category must
-// appear when that category is selected, and a different category must not
-// show it.
 func TestEndToEndCategoryFilter(t *testing.T) {
 	server, _ := newTestServer(t)
 	client := newTestClient(t)
@@ -437,10 +425,6 @@ func TestEndToEndCategoryFilter(t *testing.T) {
 	}
 }
 
-// TestEndToEndSchemaIsAuditable proves the audit's SQLite checks against the
-// real schema: a registered user, a created post, and its comment must each
-// be independently visible via the same content package functions the
-// audit's own "SELECT * FROM users/posts/comments" would return.
 func TestEndToEndSchemaIsAuditable(t *testing.T) {
 	server, db := newTestServer(t)
 	client := newTestClient(t)
