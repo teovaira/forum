@@ -2,6 +2,7 @@ package content
 
 import (
 	"database/sql"
+	"fmt"
 	"forum/internal/models"
 	"time"
 )
@@ -43,7 +44,7 @@ func UpsertReaction(db *sql.DB, target models.ReactionTarget, targetID int64, us
 		return insertReaction(db, target, targetID, userID, value)
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("query current reaction for user %d and %s %d: %w", userID, target, targetID, err)
 	}
 	if currentValue == value {
 		return deleteReaction(db, target, targetID, userID)
@@ -58,7 +59,10 @@ func insertReaction(db *sql.DB, target models.ReactionTarget, targetID, userID i
 		"INSERT INTO reactions (user_id, target_id, target_type, value, created_at) VALUES (?, ?, ?, ?, ?)",
 		userID, targetID, target, value, timeStamp,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("insert reaction for user %d and %s %d: %w", userID, target, targetID, err)
+	}
+	return nil
 }
 
 // deleteReaction removes an existing reaction row for a user and target.
@@ -67,7 +71,10 @@ func deleteReaction(db *sql.DB, target models.ReactionTarget, targetID, userID i
 		"DELETE FROM reactions WHERE user_id=? AND target_id=? AND target_type=?",
 		userID, targetID, target,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("delete reaction for user %d and %s %d: %w", userID, target, targetID, err)
+	}
+	return nil
 }
 
 // updateReaction changes the value of an existing reaction row.
@@ -76,7 +83,10 @@ func updateReaction(db *sql.DB, target models.ReactionTarget, targetID, userID i
 		"UPDATE reactions SET value=? WHERE user_id=? AND target_id=? AND target_type=?",
 		value, userID, targetID, target,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("update reaction for user %d and %s %d: %w", userID, target, targetID, err)
+	}
+	return nil
 }
 
 // CountReactions returns the number of likes and dislikes for each target.
@@ -98,11 +108,11 @@ func CountReactions(db *sql.DB, target models.ReactionTarget, ids []int64) (map[
 		var counts ReactionCounts
 		row := db.QueryRow("SELECT COUNT(*) FROM reactions WHERE target_id=? AND target_type=? AND value=?", targetID, target, models.Like)
 		if err := row.Scan(&counts.Likes); err != nil {
-			return result, err
+			return result, fmt.Errorf("count likes for %s %d: %w", target, targetID, err)
 		}
 		row = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE target_id=? AND target_type=? AND value=?", targetID, target, models.Dislike)
 		if err := row.Scan(&counts.Dislikes); err != nil {
-			return result, err
+			return result, fmt.Errorf("count dislikes for %s %d: %w", target, targetID, err)
 		}
 		result[targetID] = counts
 	}
@@ -129,18 +139,18 @@ func PostIDsLikedByUser(db *sql.DB, userID int64) ([]int64, error) {
 		userID, models.TargetPost, models.Like,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query liked post IDs for user %d: %w", userID, err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var postID int64
 		if err = rows.Scan(&postID); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan liked post ID for user %d: %w", userID, err)
 		}
 		postIDs = append(postIDs, postID)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate liked post rows for user %d: %w", userID, err)
 	}
 	if len(postIDs) == 0 {
 		return []int64{}, nil
