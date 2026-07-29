@@ -1,10 +1,3 @@
-// Package models defines the domain models and custom types used throughout
-// the forum application.
-//
-// The package contains shared data structures, identifiers, and strongly
-// typed values that represent the application's business domain. These
-// models are used by the repository, service, and handler layers to
-// exchange data in a consistent and type-safe manner.
 package models
 
 // Category represents a forum category used to classify posts.
