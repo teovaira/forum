@@ -29,6 +29,59 @@ type PostPageData struct {
 	ErrorMessage string
 }
 
+// buildPostPageData fetches a post, its categories, reactions, and comments, returning a fully populated PostPageData struct.
+// If the post is not found, it returns sql.ErrNoRows.
+func buildPostPageData(db *sql.DB, postID int64, currentUser *models.User) (*PostPageData, error) {
+	post, err := GetPost(db, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	postCatMap, err := PostCategories(db, []int64{postID})
+	if err != nil {
+		return nil, err
+	}
+	post.Categories = postCatMap[postID]
+
+	reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
+	if err != nil {
+		return nil, err
+	}
+	if counts, ok := reactionMap[postID]; ok {
+		post.Likes = counts.Likes
+		post.Dislikes = counts.Dislikes
+	}
+
+	comments, err := ListComments(db, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	var commentIDs []int64
+	for _, c := range comments {
+		commentIDs = append(commentIDs, c.ID)
+	}
+	if len(commentIDs) > 0 {
+		commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
+		if err != nil {
+			return nil, err
+		}
+		for i := range comments {
+			id := comments[i].ID
+			if counts, ok := commentReactionMap[id]; ok {
+				comments[i].Likes = counts.Likes
+				comments[i].Dislikes = counts.Dislikes
+			}
+		}
+	}
+
+	return &PostPageData{
+		Post:        *post,
+		Comments:    comments,
+		CurrentUser: currentUser,
+	}, nil
+}
+
 // NewPostPageData is the view-data contract for the new post creation page.
 type NewPostPageData struct {
 	Categories   []models.Category
@@ -148,66 +201,15 @@ func PostViewHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		post, err := GetPost(db, postID)
-		if err == sql.ErrNoRows {
-			webutil.RenderError(w, http.StatusNotFound, "Post not found.")
-			return
-		} else if err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
-			return
-		}
-
-		// Load categories for the single post
-		postCatMap, err := PostCategories(db, []int64{postID})
-		if err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for post.")
-			return
-		}
-		post.Categories = postCatMap[postID]
-
-		// Load reaction counts for the single post
-		reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
-		if err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for post.")
-			return
-		}
-		if counts, ok := reactionMap[postID]; ok {
-			post.Likes = counts.Likes
-			post.Dislikes = counts.Dislikes
-		}
-
-		comments, err := ListComments(db, postID)
-		if err != nil {
-			webutil.RenderError(w, http.StatusInternalServerError, "Could not load comments.")
-			return
-		}
-
-		// Batch load reaction counts for all comments
-		var commentIDs []int64
-		for _, c := range comments {
-			commentIDs = append(commentIDs, c.ID)
-		}
-		if len(commentIDs) > 0 {
-			commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
-			if err != nil {
-				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
-				return
-			}
-			for i := range comments {
-				id := comments[i].ID
-				if counts, ok := commentReactionMap[id]; ok {
-					comments[i].Likes = counts.Likes
-					comments[i].Dislikes = counts.Dislikes
-				}
-			}
-		}
-
 		currentUser, _ := auth.UserFromContext(r.Context())
-
-		data := PostPageData{
-			Post:        *post,
-			Comments:    comments,
-			CurrentUser: currentUser,
+		data, err := buildPostPageData(db, postID, currentUser)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				webutil.RenderError(w, http.StatusNotFound, "Post not found.")
+			} else {
+				webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
+			}
+			return
 		}
 
 		if err := webutil.RenderTemplate(w, "post.html", data); err != nil {
@@ -336,67 +338,16 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 		body := r.FormValue("body")
 
 		if strings.TrimSpace(body) == "" {
-			// Re-render post page with validation error
-			post, err := GetPost(db, postID)
-			if err == sql.ErrNoRows {
-				webutil.RenderError(w, http.StatusNotFound, "Post not found.")
-				return
-			} else if err != nil {
-				webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
-				return
-			}
-
-			// Load categories for the single post
-			postCatMap, err := PostCategories(db, []int64{postID})
+			data, err := buildPostPageData(db, postID, currentUser)
 			if err != nil {
-				webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for post.")
-				return
-			}
-			post.Categories = postCatMap[postID]
-
-			// Load reaction counts for the single post
-			reactionMap, err := CountReactions(db, models.TargetPost, []int64{postID})
-			if err != nil {
-				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for post.")
-				return
-			}
-			if counts, ok := reactionMap[postID]; ok {
-				post.Likes = counts.Likes
-				post.Dislikes = counts.Dislikes
-			}
-
-			comments, err := ListComments(db, postID)
-			if err != nil {
-				webutil.RenderError(w, http.StatusInternalServerError, "Could not load comments.")
-				return
-			}
-
-			// Batch load reaction counts for all comments
-			var commentIDs []int64
-			for _, c := range comments {
-				commentIDs = append(commentIDs, c.ID)
-			}
-			if len(commentIDs) > 0 {
-				commentReactionMap, err := CountReactions(db, models.TargetComment, commentIDs)
-				if err != nil {
-					webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for comments.")
-					return
+				if err == sql.ErrNoRows {
+					webutil.RenderError(w, http.StatusNotFound, "Post not found.")
+				} else {
+					webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
 				}
-				for i := range comments {
-					id := comments[i].ID
-					if counts, ok := commentReactionMap[id]; ok {
-						comments[i].Likes = counts.Likes
-						comments[i].Dislikes = counts.Dislikes
-					}
-				}
+				return
 			}
-
-			data := PostPageData{
-				Post:         *post,
-				Comments:     comments,
-				CurrentUser:  currentUser,
-				ErrorMessage: "Comment body cannot be empty.",
-			}
+			data.ErrorMessage = "Comment body cannot be empty."
 
 			if err := webutil.RenderTemplate(w, "post.html", data); err != nil {
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not render template.")

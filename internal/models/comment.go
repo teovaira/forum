@@ -1,5 +1,3 @@
-// Package models defines the domain models and custom types used throughout
-// the forum application.
 package models
 
 import "time"

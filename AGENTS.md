@@ -11,21 +11,30 @@ not deviate from its Section 4 ("Shared Contracts") without updating that sectio
 
 ## Setup
 
+The module is already initialized (`go.mod` is committed) — clone and fetch, don't re-run `go mod init`:
+
 ```bash
-go mod init forum
-go get github.com/mattn/go-sqlite3 golang.org/x/crypto/bcrypt github.com/google/uuid
+git clone <repo-url> && cd forum
+go mod download
 ```
 
 Requires Go 1.22+ and a C compiler (`gcc`, for the SQLite CGO bindings).
 
 ## Build, Run, Test
 
+Plain Go commands, with the equivalent `make` target alongside each:
+
 ```bash
-go run ./cmd/server                                             # run the server locally
-go fmt ./... && go vet ./... && go test ./... -v -cover -race   # full check before every commit
-go test ./internal/auth/... -run TestHashPassword -v            # run a single test
-docker build -t forum:latest . && docker run -p 8080:8080 forum:latest
+go run ./cmd/server                                             # make run
+go fmt ./... && go vet ./... && go test ./... -v -cover -race   # make test-cover
+go test ./internal/auth/... -run TestHashPassword -v            # (no shortcut — one-off)
+docker build -t forum:latest . && docker run -p 8080:8080 forum:latest   # make docker
 ```
+
+`make check` is the CI-safe variant of the same gate: `gofmt -l` (fails loudly on unformatted files
+instead of silently rewriting them) + `go vet` + `go test -race`, without `-v`/`-cover` noise. Run
+`make help` for the full target list (build, run, test variants, lint, docker lifecycle) — see
+`README.md` for the complete command reference.
 
 Env vars: `PORT` (default `8080`), `DB_PATH` (default `./forum.db`), `SECURE_COOKIES` (default off;
 must stay off for local HTTP — see cookie notes below).
@@ -56,19 +65,30 @@ must stay off for local HTTP — see cookie notes below).
 
 ## Architecture Map
 
-- `cmd/server/main.go` — wires `database.Connect`/`Init` → `auth.WithUser` (global middleware) →
-  `auth.RegisterRoutes` → `content.RegisterRoutes`.
-- `internal/database/` — connection setup (`PRAGMA foreign_keys = ON` at connect time) and the
-  append-only `schema.sql`.
+- `cmd/server/main.go` — the entry point. Reads `PORT`/`DB_PATH`, calls `database.Connect`/`Init`,
+  parses `web/templates/*.html` into `webutil.SetTemplates`, builds the router (`auth.RegisterRoutes`,
+  `content.RegisterRoutes`, `webutil.RegisterRoutes` for `/static/*`), wraps it in `auth.WithUser`
+  (applied globally — `content.RegisterRoutes` already applies `auth.RequireAuth` per-route, so
+  `WithUser` must not be paired with a second global `RequireAuth`), then `http.ListenAndServe`.
+- `internal/database/` — connection setup (foreign keys enabled via a DSN flag, so enforcement holds
+  across every pooled connection, not just the first) and the append-only `schema.sql`.
 - `internal/models/` — field-only structs, no behavior.
-- `internal/auth/` — password hashing, sessions (one per user, enforced by a `UNIQUE` constraint),
-  cookie middleware, `/register` `/login` `/logout`.
+- `internal/auth/` — password hashing, sessions (one per user, enforced by a `UNIQUE` constraint;
+  timestamps always UTC — see the note below), cookie middleware, `/register` `/login` `/logout`.
 - `internal/content/` — posts, comments, categories, reactions. Posts/comments code never writes its
   own reaction or category SQL — it calls the read helpers `CountReactions`, `PostIDsInCategory`,
   `PostIDsLikedByUser` (frozen in ROADMAP §4.3) instead, to keep the two halves of this package
   conflict-free.
 - `internal/webutil/` — `RenderTemplate`, `RenderError`; used by every handler in every other package.
-- `web/templates/`, `web/static/` — HTML templates and CSS/JS assets (BEM class naming).
+- `web/templates/`, `web/static/` — HTML templates, CSS, and a small vanilla-JS file
+  (`web/static/js/main.js`: logout confirmation, relative timestamps, a post-body character counter —
+  no framework, and every feature degrades to the plain server-rendered behavior with JS disabled).
+
+**Timestamps are always UTC.** Every `time.Now()` call that gets persisted (`created_at`,
+`expires_at`, etc.) calls `.UTC()` before formatting. `expires_at` is compared as a plain SQL string
+(`WHERE expires_at > ?`), and RFC 3339's timezone suffix does not sort correctly across offsets — a
+mixed-timezone codebase would misjudge session expiry on any server not already running in UTC. Keep
+this convention when adding a new timestamped column.
 
 ## Commit Convention
 

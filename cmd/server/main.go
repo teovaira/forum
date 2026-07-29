@@ -108,6 +108,6 @@ func main() {
 
 	handler := buildHandler(db, "web/static")
 
-	log.Printf("listening on :%s", port)
+	log.Printf("listening on http://localhost:%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
