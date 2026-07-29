@@ -1324,7 +1324,7 @@ so we remove that line limit only from the detailed post.
     margin-bottom: var(--space-5);
     font-size: var(--font-size-base);
     line-height: var(--line-height-relaxed);
-    white-space: pre-wrap;
+    white-space: pre-line;
     overflow-wrap: anywhere;
     -webkit-box-orient: initial;
     -webkit-line-clamp: initial;
@@ -1483,7 +1483,7 @@ so we remove that line limit only from the detailed post.
 
 .comment__body {
     line-height: var(--line-height-relaxed);
-    white-space: pre-wrap;
+    white-space: pre-line;
     overflow-wrap: anywhere;
 }
 
