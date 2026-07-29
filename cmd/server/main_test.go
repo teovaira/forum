@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -205,13 +206,8 @@ func newTestClient(t *testing.T) *http.Client {
 		},
 	}
 }
-
 func firstCategoryID(t *testing.T, server *httptest.Server, client *http.Client) int64 {
 	t.Helper()
-
-	// Scraped from the form rather than hardcoded, because the schema's
-	// auto-increment does not guarantee any particular category ID.
-
 	resp, err := client.Get(server.URL + "/posts/new")
 	if err != nil {
 		t.Fatalf("GET /posts/new error = %v", err)
@@ -223,23 +219,22 @@ func firstCategoryID(t *testing.T, server *httptest.Server, client *http.Client)
 		t.Fatalf("read /posts/new body: %v", err)
 	}
 
-	start := strings.Index(string(body), `name="categories" value="`)
-	if start == -1 {
+	categoryPattern := regexp.MustCompile(
+		`(?s)name="categories".*?value="([0-9]+)"`,
+	)
+
+	match := categoryPattern.FindSubmatch(body)
+	if match == nil {
 		t.Fatal("no category checkbox found on /posts/new")
 	}
-	start += len(`name="categories" value="`)
-	end := strings.Index(string(body)[start:], `"`)
-	if end == -1 {
-		t.Fatal("malformed category checkbox on /posts/new")
-	}
 
-	id, err := strconv.ParseInt(string(body)[start:start+end], 10, 64)
+	id, err := strconv.ParseInt(string(match[1]), 10, 64)
 	if err != nil {
 		t.Fatalf("parse category id: %v", err)
 	}
+
 	return id
 }
-
 func TestEndToEndForumJourney(t *testing.T) {
 	server, _ := newTestServer(t)
 	client := newTestClient(t)
