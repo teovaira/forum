@@ -44,6 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known gaps
 - No `Dockerfile` yet — the spec's Docker requirement and the audit's container-build checks are not
-  yet satisfiable. See `review.md`.
+  yet satisfiable.
 
 [Unreleased]: https://platform.zone01.gr/git/mvidenma/Forum/compare/main...HEAD
