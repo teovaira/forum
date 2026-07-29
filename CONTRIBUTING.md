@@ -97,7 +97,7 @@ every prepared `*sql.Stmt` gets `defer stmt.Close()`. The single `*sql.DB` handl
 
 ## Before Opening a Pull Request
 
-- [ ] `go fmt ./... && go vet ./... && go test ./... -v -cover -race` passes
+- [ ] `make check` (or `go fmt ./... && go vet ./... && go test ./... -v -cover -race`) passes
 - [ ] Test committed before implementation (backend)
 - [ ] Commit messages follow `type(scope): description`
 - [ ] Branch rebased onto latest `dev`

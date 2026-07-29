@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-// TestPostCategories verifies that PostCategories retrieves categories
-// for a batch of post IDs correctly.
 func TestPostCategories(t *testing.T) {
 	db := newPostTestDB(t)
 	userID := insertUser(t, db, "marios")
