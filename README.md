@@ -201,5 +201,4 @@ web/static/        CSS and JS assets
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow, branching, and commit conventions
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
 - [`ROADMAP (2).md`](ROADMAP%20(2).md) — full architecture, schema, and phased implementation plan
-- [`review.md`](review.md) — open code-review findings, if any remain
 - [`LICENSE`](LICENSE) — project license
