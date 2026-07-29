@@ -77,9 +77,7 @@
 
                 </div>
 
-                <p class="post__body post__body--full">
-                    {{.Post.Body}}
-                </p>
+                <p class="post__body post__body--full">{{- .Post.Body -}}</p>
 
                 <ul class="post__categories">
 
@@ -205,9 +203,7 @@
 
                             </p>
 
-                            <p class="comment__body">
-                                {{.Body}}
-                            </p>
+                            <p class="comment__body">{{- .Body -}}</p>
 
                             {{if $.CurrentUser}}
 
