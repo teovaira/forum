@@ -12,21 +12,24 @@ import (
 // Connect opens a SQLite database at path and enables foreign key
 // enforcement, which SQLite otherwise leaves off per connection by default.
 //
+// The flag is set in the DSN, not via a PRAGMA issued after opening,
+// because foreign_keys is a per-connection setting: a *sql.DB is a pool
+// that can open more than one physical connection under concurrency, and a
+// PRAGMA run once would only cover whichever connection happened to run it.
+// The driver applies a DSN flag to every connection it opens, so
+// enforcement holds regardless of pool size.
+//
 // Parameters:
 //   - path: the SQLite DSN — a filesystem path (e.g. "./forum.db") or
 //     ":memory:" for a temporary in-memory database.
 //
 // Returns:
-//   - *sql.DB: a ready-to-use connection pool with foreign keys enabled.
-//   - error: non-nil if the driver failed to open or the PRAGMA failed.
+//   - *sql.DB: a ready-to-use connection pool with foreign keys enabled on
+//     every connection it opens.
+//   - error: non-nil if the driver failed to open the database.
 func Connect(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite3", path+"?_foreign_keys=on")
 	if err != nil {
-		return nil, err
-	}
-
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		db.Close()
 		return nil, err
 	}
 
