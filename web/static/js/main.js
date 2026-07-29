@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupLogoutConfirm();
     setupRelativeTimestamps();
     setupCharCounter();
+    setupScrollRestoration();
 });
 
 function setupLogoutConfirm() {
@@ -72,6 +73,20 @@ function formatRelativeTime(date) {
     }
 
     return 'just now';
+}
+
+function setupScrollRestoration() {
+    var key = 'scrollY:' + location.pathname;
+
+    var saved = sessionStorage.getItem(key);
+    if (saved !== null) {
+        window.scrollTo(0, parseInt(saved, 10));
+        sessionStorage.removeItem(key);
+    }
+
+    window.addEventListener('beforeunload', function () {
+        sessionStorage.setItem(key, window.scrollY);
+    });
 }
 
 function setupCharCounter() {
