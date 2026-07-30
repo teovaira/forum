@@ -29,3 +29,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as expired immediately on a non-UTC server.
 - Foreign key enforcement now applies to every pooled database connection, not just the first.
 - Post/comment body whitespace no longer gets extra indentation when rendered.
+- Unknown URLs now return 404 and wrong HTTP methods return 405, instead of silently rendering
+  the home page.
