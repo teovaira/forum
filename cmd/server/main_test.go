@@ -165,6 +165,29 @@ func TestBuildHandler(t *testing.T) {
 			t.Errorf("GET /posts/new as guest Location = %q, want /login", loc)
 		}
 	})
+
+	// "GET /" without the {$} anchor is a catch-all prefix that swallows every
+	// unmatched path, so a typo'd URL would render the home page with 200 and
+	// a wrong method on a real route would never reach 405.
+	t.Run("an unknown path is 404, not the home page", func(t *testing.T) {
+		for _, target := range []string{"/no-such-page", "/posts/1/nonsense"} {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("GET %s status = %d, want %d", target, rec.Code, http.StatusNotFound)
+			}
+		}
+	})
+
+	t.Run("a wrong method on a real route is 405, not the home page", func(t *testing.T) {
+		for _, target := range []string{"/posts", "/logout"} {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+			if rec.Code != http.StatusMethodNotAllowed {
+				t.Errorf("GET %s status = %d, want %d", target, rec.Code, http.StatusMethodNotAllowed)
+			}
+		}
+	})
 }
 
 func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
