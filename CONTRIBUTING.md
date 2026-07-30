@@ -5,9 +5,16 @@ This document describes the team workflow for anyone contributing to this reposi
 ## Ownership Rule
 
 Do not edit a file you do not own without asking and receiving explicit permission from the owner
-first. Each package under `internal/` has a designated owner. Cross-package work (e.g. posts code
-needing reaction counts) is bridged by calling the owning package's functions, never by editing their
-files directly.
+first. Cross-package work (e.g. posts code needing reaction counts) is bridged by calling the owning
+package's functions, never by editing their files directly.
+
+| Package | Owner |
+| :--- | :--- |
+| `internal/auth/`, `internal/database/` | Theo |
+| `internal/content/` (posts, comments) | Marios |
+| `internal/content/` (categories, reactions) | Vasiliki |
+| `internal/webutil/`, `web/templates/`, `web/static/` | Krysta |
+| `Dockerfile` | Marios |
 
 ## Branching
 
@@ -41,7 +48,7 @@ changes, and tags reviewers.
 
 ## Test-Driven Development (backend Go code)
 
-Strict red-green-refactor, one function at a time:
+Strict red-green-refactor, one function at a time, as two separate commits:
 
 1. **Red:** write a failing test → commit.
 2. **Green:** write the minimum implementation to pass → commit.
@@ -69,30 +76,11 @@ Conventional commits: `<type>(<scope>): <description>`
 
 Scope is the package/area touched (`auth`, `content`, `database`, `templates`, `css`, `docker`).
 
-## Error Handling
+## Code Conventions
 
-Raw Go or SQL errors must never leak to the client:
-
-- Catch expected failures (`UNIQUE` violations, not-found, malformed input) directly.
-- Surface them as friendly messages: form pages via the `ErrorMessage` view-data field, everything
-  else via `webutil.RenderError` with the correct HTTP status (`400` bad input, `401`/`403` auth,
-  `404` missing, `500` unexpected).
-- Each owner handles the constraint errors thrown by their own queries. Log the real error
-  server-side; show a clean message to the user.
-
-## Resource Hygiene
-
-Every `*sql.Rows` from a `Query` call gets `defer rows.Close()` immediately after the error check;
-every prepared `*sql.Stmt` gets `defer stmt.Close()`. The single `*sql.DB` handle from
-`database.Connect` is never closed mid-request — only at server shutdown, if at all.
-
-## Code Cleanliness
-
-- Run `gofmt` and `goimports` before every commit.
-- Every exported Go identifier (types, functions, variables) gets a doc comment explaining *why* it
-  exists.
-- New shared names (types, function signatures, API routes, form fields) must be proposed and agreed
-  on by the team before anyone implements against them.
+Error handling, resource hygiene, doc comments, and formatting rules are documented once in
+[`AGENTS.md`](AGENTS.md) — that file applies to every contributor, human or AI. Each package owner
+handles the constraint errors thrown by their own queries.
 
 ## Before Opening a Pull Request
 
