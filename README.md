@@ -136,13 +136,28 @@ make cover-html
 
 ```bash
 docker build -t forum:latest .
-docker run -p 8080:8080 forum:latest
+docker run -d --name forum -p 8080:8080 forum:latest
 ```
 ```bash
 make docker               # build + run together
 make docker-build         # build only
 make docker-run           # run only (replaces any existing container of the same name)
+```
+
+Then visit `http://localhost:8080`, same as the local run.
+
+```bash
+docker rm -f forum
+```
+```bash
 make docker-stop          # stop and remove the running container
+```
+
+```bash
+docker rm -f forum
+docker rmi forum:latest
+```
+```bash
 make docker-clean         # stop the container and remove its image
 ```
 
@@ -155,6 +170,8 @@ go clean
 ```bash
 make clean
 ```
+
+Docker artifacts (image and container) are cleaned up separately — see `make docker-clean` above.
 
 ### Dependency Maintenance
 
