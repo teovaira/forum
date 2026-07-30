@@ -155,11 +155,14 @@ func TestBuildHandler(t *testing.T) {
 	// to read. Without it, this would 401 exactly the same on the surface,
 	// but for the wrong reason (context never populated at all) rather than
 	// the right one (no session cookie present).
-	t.Run("a protected route blocks a guest without panicking", func(t *testing.T) {
+	t.Run("a protected route redirects a guest to login without panicking", func(t *testing.T) {
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/posts/new", nil))
-		if rec.Code != http.StatusUnauthorized {
-			t.Errorf("GET /posts/new as guest status = %d, want %d", rec.Code, http.StatusUnauthorized)
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("GET /posts/new as guest status = %d, want %d", rec.Code, http.StatusSeeOther)
+		}
+		if loc := rec.Header().Get("Location"); loc != "/login" {
+			t.Errorf("GET /posts/new as guest Location = %q, want /login", loc)
 		}
 	})
 }
@@ -254,8 +257,11 @@ func TestEndToEndForumJourney(t *testing.T) {
 			t.Fatalf("GET /posts/new error = %v", err)
 		}
 		resp.Body.Close()
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("GET /posts/new as guest status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+		if resp.StatusCode != http.StatusSeeOther {
+			t.Errorf("GET /posts/new as guest status = %d, want %d", resp.StatusCode, http.StatusSeeOther)
+		}
+		if loc := resp.Header.Get("Location"); loc != "/login" {
+			t.Errorf("GET /posts/new as guest Location = %q, want /login", loc)
 		}
 	})
 
@@ -378,8 +384,11 @@ func TestEndToEndForumJourney(t *testing.T) {
 			t.Fatalf("GET /posts/new error = %v", err)
 		}
 		resp.Body.Close()
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("GET /posts/new after logout status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+		if resp.StatusCode != http.StatusSeeOther {
+			t.Errorf("GET /posts/new after logout status = %d, want %d", resp.StatusCode, http.StatusSeeOther)
+		}
+		if loc := resp.Header.Get("Location"); loc != "/login" {
+			t.Errorf("GET /posts/new after logout Location = %q, want /login", loc)
 		}
 	})
 }
