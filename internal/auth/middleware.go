@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"forum/internal/models"
-	"forum/internal/webutil"
 )
 
 // contextKey is an unexported type so keys defined here can never collide
@@ -69,19 +68,19 @@ func UserFromContext(ctx context.Context) (*models.User, bool) {
 // RequireAuth blocks requests that have no user in context. Unlike
 // WithUser, which only populates context and never blocks, this is the
 // enforcement layer — wrap it around routes that must not be reachable by
-// guests. A blocked request gets a clean 401 via webutil.RenderError,
-// never a bare/raw status.
+// guests. A blocked request is redirected to /login, never left on a bare
+// status page.
 //
 // Parameters:
 //   - next: the handler to run only if a user is present in the request
 //     context (as populated by WithUser).
 //
 // Returns:
-//   - http.Handler: a handler that either calls next or writes a 401.
+//   - http.Handler: a handler that either calls next or redirects to /login.
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := UserFromContext(r.Context()); !ok {
-			webutil.RenderError(w, http.StatusUnauthorized, "You must be logged in to view this page.")
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r)
