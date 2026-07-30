@@ -1,4 +1,4 @@
-# Makefile — build/run/test shortcuts for the forum project (ROADMAP §3).
+# Makefile — build/run/test shortcuts for the forum project.
 #
 # `make docker` is what satisfies the audit's "does the project present a
 # script to build the images and containers" check, so it must genuinely
@@ -61,7 +61,7 @@ test:
 test-race:
 	go test ./... -race
 
-## test-cover: run the suite with coverage and race detection (ROADMAP §2)
+## test-cover: run the suite with coverage and race detection
 test-cover:
 	go test ./... -v -cover -race
 
@@ -113,8 +113,6 @@ docker: docker-build docker-run
 docker-build:
 	@if [ ! -f Dockerfile ]; then \
 		echo "Dockerfile not found at the repository root."; \
-		echo "It is owned by Marios (ROADMAP §8, Phase 6) and must exist before"; \
-		echo "the image can be built."; \
 		exit 1; \
 	fi
 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
