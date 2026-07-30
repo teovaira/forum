@@ -212,15 +212,18 @@ func TestCreatePostHandlerIntegration(t *testing.T) {
 	// so the session token cookie is evaluated before hitting RequireAuth.
 	authenticatedMux := auth.WithUser(db)(mux)
 
-	t.Run("redirects guest to unauthorized", func(t *testing.T) {
+	t.Run("redirects guest to login", func(t *testing.T) {
 		form := url.Values{"title": {"Title"}, "body": {"Body"}, "categories": {strconv.FormatInt(categoryID, 10)}}
 		r, _ := newAuthRequest(http.MethodPost, "/posts", form, db, "")
 		w := httptest.NewRecorder()
 
 		authenticatedMux.ServeHTTP(w, r)
 
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", w.Code)
+		if w.Code != http.StatusSeeOther {
+			t.Errorf("expected %d, got %d", http.StatusSeeOther, w.Code)
+		}
+		if loc := w.Header().Get("Location"); loc != "/login" {
+			t.Errorf("expected redirect to /login, got %q", loc)
 		}
 	})
 
