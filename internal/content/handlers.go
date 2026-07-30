@@ -371,7 +371,11 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 //   - mux: The http.ServeMux instance.
 //   - db: An open SQLite database connection.
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
-	mux.HandleFunc("GET /", HomeHandler(db))
+	// The {$} anchor makes this match only the root path. Without it, "GET /"
+	// is a catch-all prefix that swallows every unmatched request, so a typo'd
+	// URL would render the home page with 200 instead of 404, and a wrong
+	// method on another route would never reach its 405.
+	mux.HandleFunc("GET /{$}", HomeHandler(db))
 	mux.HandleFunc("GET /posts/{id}", PostViewHandler(db))
 
 	// Protected routes require authentication
