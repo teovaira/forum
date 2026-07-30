@@ -114,10 +114,11 @@ func TestRequireAuth(t *testing.T) {
 			t.Error("expected RequireAuth to block the request, but next was called")
 		}
 
-		// "Clean" means a real status was written, not the zero value that
-		// results from nothing ever calling WriteHeader/Write.
-		if w.Code == 0 || w.Code == http.StatusOK {
-			t.Errorf("expected a non-200 status to be written, got %d", w.Code)
+		if w.Code != http.StatusSeeOther {
+			t.Errorf("expected a %d redirect, got %d", http.StatusSeeOther, w.Code)
+		}
+		if loc := w.Header().Get("Location"); loc != "/login" {
+			t.Errorf("expected redirect to /login, got %q", loc)
 		}
 	})
 }
