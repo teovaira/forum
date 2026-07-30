@@ -5,8 +5,11 @@ categories, comment on posts, and like/dislike posts and comments; visitors can 
 must register to participate. Posts can be filtered by category, by the logged-in user's own posts, or
 by posts the logged-in user has liked.
 
-The category set is anime-themed (demographic/genre/theme/discussion tags — see `ROADMAP (2).md` §7
-for the rationale), but the underlying mechanism is generic tagging and filtering.
+The category set is anime-themed, grouped into four kinds — demographic (Shonen, Shoujo, Seinen,
+Josei), genre (Action, Romance, Isekai, Mecha, Slice of Life, Fantasy, Horror, Comedy, Sports), theme
+(School, Music, Military, Supernatural, Historical), and discussion (Anime Discussion, Manga,
+Recommendations, News, Fan Creations, General) — but the underlying mechanism is generic tagging and
+filtering: any post can carry one or more categories from any group.
 
 ## Features
 
@@ -200,5 +203,4 @@ web/static/        CSS and JS assets
 - [`AGENTS.md`](AGENTS.md) — guidance for AI coding assistants working in this repo
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow, branching, and commit conventions
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
-- [`ROADMAP (2).md`](ROADMAP%20(2).md) — full architecture, schema, and phased implementation plan
 - [`LICENSE`](LICENSE) — project license
