@@ -59,7 +59,8 @@ Run the `go fmt`/`go vet`/`go test` line above (or `make check`) before every co
   server-side when empty or whitespace-only — do not rely on client-side validation alone.
 - **Routing:** use Go 1.22's method-aware mux patterns (`mux.HandleFunc("GET /path", ...)`), not the
   old method-less form, so mismatched methods get an automatic `405` instead of falling into handler
-  code.
+  code. Anchor the root route as `"GET /{$}"` — a bare `"GET /"` is a prefix pattern that swallows
+  every unmatched path and returns the home page instead of a `404`.
 - **Cookies:** session cookie is `session_token` with `HttpOnly; SameSite=Strict; Path=/` always on;
   `Secure` is conditional on `SECURE_COOKIES` and must stay off for local `http://localhost` testing —
   a `Secure` cookie is silently dropped over plain HTTP.
