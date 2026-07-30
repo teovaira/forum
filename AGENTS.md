@@ -5,9 +5,9 @@ Guidance for AI coding agents working in this repository.
 ## Project
 
 A Go 1.22 web forum backed by SQLite (`mattn/go-sqlite3`, CGO), server-rendered with `html/template`
-— no frontend framework. Full architecture, database schema, frozen function signatures, routes, and
-the phased build plan live in [`ROADMAP (2).md`](ROADMAP%20(2).md); read it before writing code. Do
-not deviate from its Section 4 ("Shared Contracts") without updating that section first.
+— no frontend framework. Package layout, shared contracts (types, function signatures, routes), and
+conventions are described below; don't deviate from a frozen signature without agreeing the change
+with the team first.
 
 ## Setup
 
@@ -77,8 +77,7 @@ must stay off for local HTTP — see cookie notes below).
   timestamps always UTC — see the note below), cookie middleware, `/register` `/login` `/logout`.
 - `internal/content/` — posts, comments, categories, reactions. Posts/comments code never writes its
   own reaction or category SQL — it calls the read helpers `CountReactions`, `PostIDsInCategory`,
-  `PostIDsLikedByUser` (frozen in ROADMAP §4.3) instead, to keep the two halves of this package
-  conflict-free.
+  `PostIDsLikedByUser` instead, to keep the two halves of this package conflict-free.
 - `internal/webutil/` — `RenderTemplate`, `RenderError`; used by every handler in every other package.
 - `web/templates/`, `web/static/` — HTML templates, CSS, and a small vanilla-JS file
   (`web/static/js/main.js`: logout confirmation, relative timestamps, a post-body character counter —
@@ -99,5 +98,5 @@ logical change per commit; see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full
 ## Before Submitting a Change
 
 Run `go fmt ./... && go vet ./... && go test ./... -v -cover -race` and confirm it's clean. Check that
-any new shared type, function signature, route, or form field name matches (or has been added to)
-ROADMAP §4 before relying on it elsewhere.
+any new shared type, function signature, route, or form field name has been agreed on with the team
+before relying on it elsewhere.
