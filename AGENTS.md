@@ -37,7 +37,9 @@ instead of silently rewriting them) + `go vet` + `go test -race`, without `-v`/`
 `README.md` for the complete command reference.
 
 Env vars: `PORT` (default `8080`), `DB_PATH` (default `./forum.db`), `SECURE_COOKIES` (default off;
-must stay off for local HTTP — see cookie notes below).
+must stay off for local HTTP).
+
+Run the `go fmt`/`go vet`/`go test` line above (or `make check`) before every commit.
 
 ## Code Conventions
 
@@ -46,7 +48,6 @@ must stay off for local HTTP — see cookie notes below).
   implementation before the test exists.
 - **Every exported identifier needs a doc comment explaining *why* it exists**, not a restatement of
   its name.
-- Run `gofmt`/`goimports` before every commit.
 - **Resource hygiene (checked in review/audit):** every `*sql.Rows` gets `defer rows.Close()`
   immediately after the error check; every `*sql.Stmt` gets `defer stmt.Close()`; the single `*sql.DB`
   handle from `database.Connect` is only closed at server shutdown, never mid-request.
@@ -63,40 +64,21 @@ must stay off for local HTTP — see cookie notes below).
   `Secure` is conditional on `SECURE_COOKIES` and must stay off for local `http://localhost` testing —
   a `Secure` cookie is silently dropped over plain HTTP.
 
-## Architecture Map
+## Package Map
 
-- `cmd/server/main.go` — the entry point. Reads `PORT`/`DB_PATH`, calls `database.Connect`/`Init`,
-  parses `web/templates/*.html` into `webutil.SetTemplates`, builds the router (`auth.RegisterRoutes`,
-  `content.RegisterRoutes`, `webutil.RegisterRoutes` for `/static/*`), wraps it in `auth.WithUser`
-  (applied globally — `content.RegisterRoutes` already applies `auth.RequireAuth` per-route, so
-  `WithUser` must not be paired with a second global `RequireAuth`), then `http.ListenAndServe`.
-- `internal/database/` — connection setup (foreign keys enabled via a DSN flag, so enforcement holds
-  across every pooled connection, not just the first) and the append-only `schema.sql`.
+- `cmd/server/` — entry point, wires everything together.
+- `internal/database/` — connection setup, `schema.sql`.
 - `internal/models/` — field-only structs, no behavior.
-- `internal/auth/` — password hashing, sessions (one per user, enforced by a `UNIQUE` constraint;
-  timestamps always UTC — see the note below), cookie middleware, `/register` `/login` `/logout`.
-- `internal/content/` — posts, comments, categories, reactions. Posts/comments code never writes its
-  own reaction or category SQL — it calls the read helpers `CountReactions`, `PostIDsInCategory`,
-  `PostIDsLikedByUser` instead, to keep the two halves of this package conflict-free.
-- `internal/webutil/` — `RenderTemplate`, `RenderError`; used by every handler in every other package.
-- `web/templates/`, `web/static/` — HTML templates, CSS, and a small vanilla-JS file
-  (`web/static/js/main.js`: logout confirmation, relative timestamps, a post-body character counter —
-  no framework, and every feature degrades to the plain server-rendered behavior with JS disabled).
+- `internal/auth/` — password hashing, sessions, cookie middleware, `/register` `/login` `/logout`.
+- `internal/content/` — posts, comments, categories, reactions.
+- `internal/webutil/` — `RenderTemplate`, `RenderError`, used by every handler.
+- `web/templates/`, `web/static/` — HTML templates, CSS, vanilla JS.
 
-**Timestamps are always UTC.** Every `time.Now()` call that gets persisted (`created_at`,
-`expires_at`, etc.) calls `.UTC()` before formatting. `expires_at` is compared as a plain SQL string
-(`WHERE expires_at > ?`), and RFC 3339's timezone suffix does not sort correctly across offsets — a
-mixed-timezone codebase would misjudge session expiry on any server not already running in UTC. Keep
-this convention when adding a new timestamped column.
+Persisted timestamps always call `.UTC()` before formatting — `expires_at` is compared as a plain SQL
+string, and a non-UTC timestamp sorts incorrectly against it.
 
 ## Commit Convention
 
 `<type>(<scope>): <description>` — types: `feat, fix, test, refactor, docs, style, chore, build`.
 Scope is the package/area touched (`auth`, `content`, `database`, `templates`, `css`, `docker`). One
 logical change per commit; see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
-
-## Before Submitting a Change
-
-Run `go fmt ./... && go vet ./... && go test ./... -v -cover -race` and confirm it's clean. Check that
-any new shared type, function signature, route, or form field name has been agreed on with the team
-before relying on it elsewhere.
