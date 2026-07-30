@@ -1,22 +1,21 @@
 # Contributing
 
-This document restates the team workflow from [`ROADMAP (2).md`](ROADMAP%20(2).md) §1 for anyone
-contributing to this repository. Read the roadmap first — it holds the full architecture, database
-schema, and frozen shared contracts (types, function signatures, routes) that all code must follow.
+This document describes the team workflow for anyone contributing to this repository.
 
 ## Ownership Rule
 
 Do not edit a file you do not own without asking and receiving explicit permission from the owner
-first. See ROADMAP §3 for the file-to-owner map. Cross-package work (e.g. posts code needing reaction
-counts) is bridged by calling the owning package's functions, never by editing their files directly.
+first. Each package under `internal/` has a designated owner. Cross-package work (e.g. posts code
+needing reaction counts) is bridged by calling the owning package's functions, never by editing their
+files directly.
 
 ## Branching
 
 - Branch off `dev`, never off `main` directly.
 - Name branches `<username>/<feature>` (e.g. `theo/auth-sessions`, `marios/posts-comments`).
 - Rebase onto `dev` before every push.
-- Merge a feature into `dev` only once it's tested; `dev` merges into `main` only at the milestones
-  defined in ROADMAP §5.
+- Merge a feature into `dev` only once it's tested; `dev` merges into `main` only at agreed
+  milestones.
 - Nobody commits directly to `dev` or `main`.
 
 ```bash
@@ -92,8 +91,8 @@ every prepared `*sql.Stmt` gets `defer stmt.Close()`. The single `*sql.DB` handl
 - Run `gofmt` and `goimports` before every commit.
 - Every exported Go identifier (types, functions, variables) gets a doc comment explaining *why* it
   exists.
-- New shared names (types, function signatures, API routes, form fields) must be proposed, agreed
-  upon, and added to ROADMAP §4 before anyone implements against them.
+- New shared names (types, function signatures, API routes, form fields) must be proposed and agreed
+  on by the team before anyone implements against them.
 
 ## Before Opening a Pull Request
 
@@ -102,4 +101,4 @@ every prepared `*sql.Stmt` gets `defer stmt.Close()`. The single `*sql.DB` handl
 - [ ] Commit messages follow `type(scope): description`
 - [ ] Branch rebased onto latest `dev`
 - [ ] Only files you own were touched
-- [ ] Any new shared name was added to ROADMAP §4 before use
+- [ ] Any new shared name was agreed on by the team before use
