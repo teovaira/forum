@@ -225,6 +225,14 @@ func TestCreatePostHandlerIntegration(t *testing.T) {
 		if loc := w.Header().Get("Location"); loc != "/login" {
 			t.Errorf("expected redirect to /login, got %q", loc)
 		}
+
+		var count int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM posts WHERE title = 'Title'`).Scan(&count); err != nil {
+			t.Fatalf("counting posts: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("guest POST /posts inserted %d rows, want 0", count)
+		}
 	})
 
 	t.Run("re-renders form on empty validation", func(t *testing.T) {
