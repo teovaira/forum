@@ -323,7 +323,10 @@ func TestReactPostHandlerRejectsUnauthenticatedUser(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newReactionPostTestHandler(db).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/posts/1/like", nil))
 
-	assertHandlerStatus(t, rec, http.StatusUnauthorized)
+	assertHandlerStatus(t, rec, http.StatusSeeOther)
+	if loc := rec.Header().Get("Location"); loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
+	}
 	assertHandlerNoReaction(t, db, reactionHandlerTestUserID, reactionHandlerTestPostID, models.TargetPost)
 }
 
@@ -334,7 +337,10 @@ func TestReactCommentHandlerRejectsUnauthenticatedUser(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newReactionCommentTestHandler(db).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/comments/1/like", nil))
 
-	assertHandlerStatus(t, rec, http.StatusUnauthorized)
+	assertHandlerStatus(t, rec, http.StatusSeeOther)
+	if loc := rec.Header().Get("Location"); loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
+	}
 	assertHandlerNoReaction(t, db, reactionHandlerTestUserID, reactionHandlerTestCommentID, models.TargetComment)
 }
 
