@@ -3,6 +3,7 @@ package content
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -33,18 +34,18 @@ func CreateComment(db *sql.DB, postID, userID int64, body string) (int64, error)
 
 	stmt, err := db.Prepare("INSERT INTO comments (post_id, user_id, body, created_at) VALUES (?, ?, ?, ?)")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("prepare insert comment stmt: %w", err)
 	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(postID, userID, trimmedBody, createdAt)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("exec insert comment (post %d, user %d): %w", postID, userID, err)
 	}
 
 	commentID, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("get insert comment last id: %w", err)
 	}
 
 	return commentID, nil
@@ -73,7 +74,7 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 		postID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query comments for post %d: %w", postID, err)
 	}
 	defer rows.Close()
 
@@ -84,17 +85,17 @@ func ListComments(db *sql.DB, postID int64) ([]models.Comment, error) {
 		var createdAtStr string
 		err = rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Author, &comment.Body, &createdAtStr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan comment row for post %d: %w", postID, err)
 		}
 		comment.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parse comment created_at %q for post %d: %w", createdAtStr, postID, err)
 		}
 		comments = append(comments, comment)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate comment rows for post %d: %w", postID, err)
 	}
 
 	if len(comments) == 0 {

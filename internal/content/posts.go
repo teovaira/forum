@@ -3,6 +3,7 @@ package content
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ func CreatePost(db *sql.DB, userID int64, title, body string, categoryIDs []int6
 
 	tx, err := db.Begin()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("begin create post tx: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -56,35 +57,35 @@ func CreatePost(db *sql.DB, userID int64, title, body string, categoryIDs []int6
 
 	stmt, err := tx.Prepare("INSERT INTO posts (user_id, title, body, created_at) VALUES (?, ?, ?, ?)")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("prepare insert post stmt: %w", err)
 	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(userID, trimmedTitle, trimmedBody, createdAt)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("exec insert post: %w", err)
 	}
 
 	postID, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("get insert post last id: %w", err)
 	}
 
 	pcStmt, err := tx.Prepare("INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("prepare insert post category stmt: %w", err)
 	}
 	defer pcStmt.Close()
 
 	for _, categoryID := range categoryIDs {
 		_, err = pcStmt.Exec(postID, categoryID)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("exec insert post_category (post %d, category %d): %w", postID, categoryID, err)
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("commit create post tx: %w", err)
 	}
 
 	return postID, nil
@@ -116,12 +117,12 @@ func GetPost(db *sql.DB, postID int64) (*models.Post, error) {
 	).Scan(&post.ID, &post.UserID, &post.Author, &post.Title, &post.Body, &createdAtStr)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query post %d: %w", postID, err)
 	}
 
 	post.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse post %d created_at %q: %w", postID, createdAtStr, err)
 	}
 
 	return &post, nil
@@ -158,7 +159,7 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 	if filter.CategoryID != nil {
 		postIDs, err := PostIDsInCategory(db, *filter.CategoryID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("get post IDs in category %d: %w", *filter.CategoryID, err)
 		}
 		if len(postIDs) == 0 {
 			return []models.Post{}, nil
@@ -175,7 +176,7 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 	if filter.LikedByUserID != nil {
 		postIDs, err := PostIDsLikedByUser(db, *filter.LikedByUserID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("get post IDs liked by user %d: %w", *filter.LikedByUserID, err)
 		}
 		if len(postIDs) == 0 {
 			return []models.Post{}, nil
@@ -197,7 +198,7 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query list posts: %w", err)
 	}
 	defer rows.Close()
 
@@ -208,17 +209,17 @@ func ListPosts(db *sql.DB, filter PostFilter) ([]models.Post, error) {
 		var createdAtStr string
 		err = rows.Scan(&post.ID, &post.UserID, &post.Author, &post.Title, &post.Body, &createdAtStr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan post row: %w", err)
 		}
 		post.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parse list post created_at %q: %w", createdAtStr, err)
 		}
 		posts = append(posts, post)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate list post rows: %w", err)
 	}
 
 	if len(posts) == 0 {

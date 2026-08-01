@@ -2,7 +2,9 @@ package content
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -133,6 +135,7 @@ func HomeHandler(db *sql.DB) http.HandlerFunc {
 
 		posts, err := ListPosts(db, filter)
 		if err != nil {
+			log.Printf("content: HomeHandler ListPosts error: %v", err)
 			webutil.RenderError(w, http.StatusInternalServerError, "Could not load posts.")
 			return
 		}
@@ -146,12 +149,14 @@ func HomeHandler(db *sql.DB) http.HandlerFunc {
 		if len(postIDs) > 0 {
 			postCatMap, err := PostCategories(db, postIDs)
 			if err != nil {
+				log.Printf("content: HomeHandler PostCategories error: %v", err)
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories for posts.")
 				return
 			}
 
 			reactionMap, err := CountReactions(db, models.TargetPost, postIDs)
 			if err != nil {
+				log.Printf("content: HomeHandler CountReactions error: %v", err)
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not load reactions for posts.")
 				return
 			}
@@ -168,6 +173,7 @@ func HomeHandler(db *sql.DB) http.HandlerFunc {
 
 		categories, err := ListCategories(db)
 		if err != nil {
+			log.Printf("content: HomeHandler ListCategories error: %v", err)
 			webutil.RenderError(w, http.StatusInternalServerError, "Could not load categories.")
 			return
 		}
@@ -204,9 +210,10 @@ func PostViewHandler(db *sql.DB) http.HandlerFunc {
 		currentUser, _ := auth.UserFromContext(r.Context())
 		data, err := buildPostPageData(db, postID, currentUser)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				webutil.RenderError(w, http.StatusNotFound, "Post not found.")
 			} else {
+				log.Printf("content: PostViewHandler buildPostPageData error: %v", err)
 				webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
 			}
 			return
@@ -304,6 +311,7 @@ func CreatePostHandler(db *sql.DB) http.HandlerFunc {
 
 		postID, err := CreatePost(db, currentUser.ID, title, body, categoryIDs)
 		if err != nil {
+			log.Printf("content: CreatePostHandler CreatePost error: %v", err)
 			webutil.RenderError(w, http.StatusInternalServerError, "Failed to create post.")
 			return
 		}
@@ -340,9 +348,10 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 		if strings.TrimSpace(body) == "" {
 			data, err := buildPostPageData(db, postID, currentUser)
 			if err != nil {
-				if err == sql.ErrNoRows {
+				if errors.Is(err, sql.ErrNoRows) {
 					webutil.RenderError(w, http.StatusNotFound, "Post not found.")
 				} else {
+					log.Printf("content: CreateCommentHandler buildPostPageData error: %v", err)
 					webutil.RenderError(w, http.StatusInternalServerError, "Could not load post.")
 				}
 				return
@@ -357,6 +366,7 @@ func CreateCommentHandler(db *sql.DB) http.HandlerFunc {
 
 		_, err = CreateComment(db, postID, currentUser.ID, body)
 		if err != nil {
+			log.Printf("content: CreateCommentHandler CreateComment error: %v", err)
 			webutil.RenderError(w, http.StatusInternalServerError, "Failed to post comment.")
 			return
 		}

@@ -2,6 +2,7 @@ package content
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 	"testing"
 
@@ -313,7 +314,7 @@ func TestGetPost(t *testing.T) {
 	t.Run("returns ErrNoRows for non-existent post", func(t *testing.T) {
 		db := newPostTestDB(t)
 		_, err := GetPost(db, 999_999)
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			t.Errorf("GetPost() error = %v, want sql.ErrNoRows", err)
 		}
 	})
