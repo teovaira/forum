@@ -432,6 +432,11 @@ textarea {
 
 /* modal — used for the logout confirmation dialog */
 
+.site-header:has(.modal:not([hidden])) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .modal {
     position: fixed;
     inset: 0;
@@ -439,6 +444,7 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: var(--space-4);
 }
 
 .modal[hidden] {
