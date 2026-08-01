@@ -139,18 +139,18 @@ func PostIDsLikedByUser(db *sql.DB, userID int64) ([]int64, error) {
 		userID, models.TargetPost, models.Like,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("query liked post IDs for user %d: %w", userID, err)
+		return []int64{}, fmt.Errorf("query liked post IDs for user %d: %w", userID, err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var postID int64
 		if err = rows.Scan(&postID); err != nil {
-			return nil, fmt.Errorf("scan liked post ID for user %d: %w", userID, err)
+			return []int64{}, fmt.Errorf("scan liked post ID for user %d: %w", userID, err)
 		}
 		postIDs = append(postIDs, postID)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate liked post rows for user %d: %w", userID, err)
+		return []int64{}, fmt.Errorf("iterate liked post rows for user %d: %w", userID, err)
 	}
 	if len(postIDs) == 0 {
 		return []int64{}, nil
