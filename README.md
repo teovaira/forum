@@ -21,7 +21,8 @@ filtering: any post can carry one or more categories from any group.
 - Filter the post feed by category, by "my posts", or by "posts I've liked" (registered users only).
 - Visitors (logged-out users) can read all posts and comments but cannot post, comment, or react.
 - Progressive, framework-free JavaScript enhancements (logout confirmation, relative timestamps, a
-  post-body character counter) — the site is fully functional with JavaScript disabled.
+  post-body character counter, and scroll position restoration) — the site is fully functional with
+  JavaScript disabled.
 
 ## Tech Stack
 
