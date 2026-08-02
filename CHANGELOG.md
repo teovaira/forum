@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-02
 
 ### Added
 - SQLite schema: `users`, `sessions`, `posts`, `comments`, `categories`, `post_categories`, `reactions`,
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server-rendered HTML templates for the home feed, a single post, login, registration, the new-post
   form, and a generic error page.
 - Progressive JavaScript enhancements: logout confirmation, relative timestamps, a post-body character
-  counter — the site works fully with JavaScript disabled.
+  counter, and scroll position restoration — the site works fully with JavaScript disabled.
 - End-to-end HTTP tests covering the full register → post → comment → react → logout journey.
 - `Makefile` with build/run/test/lint/docker targets.
 - Multi-stage `Dockerfile` for containerized builds.
@@ -31,3 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Post/comment body whitespace no longer gets extra indentation when rendered.
 - Unknown URLs now return 404 and wrong HTTP methods return 405, instead of silently rendering
   the home page.
+- Unauthenticated requests to protected routes now redirect to `/login` instead of returning a
+  bare 401 error page.
+- Logout confirmation modal is now correctly centered and no longer clipped by the site header.
+
+### Changed
+- Database errors across the content package are now wrapped with context, making server-side
+  traces easier to follow when a query fails.
+- List functions now consistently return an empty slice instead of nil on all paths, including
+  error paths.
