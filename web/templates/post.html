@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Forum – {{.Post.Title}}</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/tokens.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+    {{template "header" .}}
+
+    <main class="container post-page">
+
+        <article class="post post--detail">
+
+            <div
+                class="post__avatar"
+                aria-hidden="true"
+            >
+                ✦
+            </div>
+
+            <div class="post__content">
+
+                <div class="post__heading">
+
+                    <div class="post__heading-content">
+
+                        <h1 class="post__title">
+                            {{.Post.Title}}
+                        </h1>
+
+                        <p class="post__meta">
+
+                            by
+
+                            <span class="post__author">
+                                {{.Post.Author}}
+                            </span>
+
+                            <span aria-hidden="true">
+                                •
+                            </span>
+
+                            <time
+                                datetime="{{.Post.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
+                            >
+                                {{.Post.CreatedAt.Format "2006-01-02"}}
+                            </time>
+
+                        </p>
+
+                    </div>
+
+                    <span
+                        class="post__bookmark"
+                        aria-hidden="true"
+                    >
+                        ♡
+                    </span>
+
+                </div>
+
+                <p class="post__body post__body--full">{{- .Post.Body -}}</p>
+
+                <ul class="post__categories">
+
+                    {{range .Post.Categories}}
+
+                        <li>
+                            <a
+                                href="/?category={{.ID}}"
+                                class="category-tag"
+                            >
+                                #{{.Name}}
+                            </a>
+                        </li>
+
+                    {{end}}
+
+                </ul>
+
+                <div class="post__footer">
+
+                    {{if .CurrentUser}}
+
+                        <div class="post__reactions">
+
+                            <form
+                                method="post"
+                                action="/posts/{{.Post.ID}}/like"
+                            >
+                                <button
+                                    type="submit"
+                                    class="reaction-button reaction-button--like"
+                                >
+                                    Like ({{.Post.Likes}})
+                                </button>
+                            </form>
+
+                            <form
+                                method="post"
+                                action="/posts/{{.Post.ID}}/dislike"
+                            >
+                                <button
+                                    type="submit"
+                                    class="reaction-button reaction-button--dislike"
+                                >
+                                    Dislike ({{.Post.Dislikes}})
+                                </button>
+                            </form>
+
+                        </div>
+
+                    {{else}}
+
+                        <p class="post__counts">
+                            {{.Post.Likes}} likes /
+                            {{.Post.Dislikes}} dislikes
+                        </p>
+
+                    {{end}}
+
+                </div>
+
+            </div>
+
+        </article>
+
+        <section
+            class="comments-section"
+            aria-labelledby="comments-title"
+        >
+
+            <div class="comments-section__header">
+
+                <h2
+                    id="comments-title"
+                    class="comments-section__title"
+                >
+                    Comments
+                </h2>
+
+            </div>
+
+            {{if .ErrorMessage}}
+
+                <p
+                    class="comment-form__error"
+                    role="alert"
+                >
+                    {{.ErrorMessage}}
+                </p>
+
+            {{end}}
+
+            <div class="comment-list">
+
+                {{range .Comments}}
+
+                    <article class="comment">
+
+                        <div
+                            class="comment__avatar"
+                            aria-hidden="true"
+                        >
+                            ✦
+                        </div>
+
+                        <div class="comment__content">
+
+                            <p class="comment__meta">
+
+                                <span class="comment__author">
+                                    {{.Author}}
+                                </span>
+
+                                <span aria-hidden="true">
+                                    •
+                                </span>
+
+                                <time
+                                    datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
+                                >
+                                    {{.CreatedAt.Format "2006-01-02"}}
+                                </time>
+
+                            </p>
+
+                            <p class="comment__body">{{- .Body -}}</p>
+
+                            {{if $.CurrentUser}}
+
+                                <div class="comment__reactions">
+
+                                    <form
+                                        method="post"
+                                        action="/comments/{{.ID}}/like"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="post_id"
+                                            value="{{.PostID}}"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="reaction-button reaction-button--like"
+                                        >
+                                            Like ({{.Likes}})
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        method="post"
+                                        action="/comments/{{.ID}}/dislike"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="post_id"
+                                            value="{{.PostID}}"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="reaction-button reaction-button--dislike"
+                                        >
+                                            Dislike ({{.Dislikes}})
+                                        </button>
+                                    </form>
+
+                                </div>
+
+                            {{else}}
+
+                                <p class="comment__counts">
+                                    {{.Likes}} likes /
+                                    {{.Dislikes}} dislikes
+                                </p>
+
+                            {{end}}
+
+                        </div>
+
+                    </article>
+
+                {{else}}
+
+                    <section class="comments-empty">
+
+                        <div
+                            class="comments-empty__icon"
+                            aria-hidden="true"
+                        >
+                            ✦
+                        </div>
+
+                        <p class="comments-empty__text">
+                            No comments yet.
+                        </p>
+
+                    </section>
+
+                {{end}}
+
+            </div>
+
+            {{if .CurrentUser}}
+
+                <form
+                    method="post"
+                    action="/posts/{{.Post.ID}}/comments"
+                    class="comment-form"
+                >
+
+                    <label
+                        for="comment-body"
+                        class="comment-form__label"
+                    >
+                        Add a comment
+                    </label>
+
+                    <textarea
+                        id="comment-body"
+                        name="body"
+                        placeholder="Write your comment..."
+                        required
+                    ></textarea>
+
+                    <button type="submit">
+                        Post Comment
+                    </button>
+
+                </form>
+
+            {{end}}
+
+        </section>
+
+    </main>
+
+    {{template "footer" .}}
+
+</body>
+</html>

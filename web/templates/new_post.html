@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Forum – New Post</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/tokens.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+    {{template "header" .}}
+
+    <main class="container new-post-page">
+
+        <section
+            class="new-post-panel"
+            aria-labelledby="new-post-title"
+        >
+
+            <header class="new-post-panel__header">
+
+                <h1
+                    id="new-post-title"
+                    class="new-post-panel__title"
+                >
+                    New Post
+                </h1>
+
+                <p class="new-post-panel__subtitle">
+                    Start a new discussion with the anime community.
+                </p>
+
+            </header>
+
+            {{if .ErrorMessage}}
+
+                <p
+                    class="post-form__error"
+                    role="alert"
+                >
+                    {{.ErrorMessage}}
+                </p>
+
+            {{end}}
+
+            <form
+                method="post"
+                action="/posts"
+                class="post-form"
+            >
+
+                <label class="post-form__field">
+
+                    <span>Title</span>
+
+                    <input
+                        type="text"
+                        name="title"
+                        autocomplete="off"
+                        required
+                    >
+
+                </label>
+
+                <label class="post-form__field">
+
+                    <span>Body</span>
+
+                    <textarea
+                        name="body"
+                        class="post-form__body"
+                        placeholder="Write your post..."
+                        required
+                    ></textarea>
+
+                    <span class="post-form__char-count">
+                        0 characters
+                    </span>
+
+                </label>
+
+                <div class="post-form__category-groups">
+
+                    <fieldset class="post-form__categories">
+
+                        <legend>Demographic</legend>
+
+                        {{range .Categories}}
+
+                            {{if eq .Kind "demographic"}}
+
+                                <label class="post-form__category">
+
+                                    <input
+                                        type="checkbox"
+                                        name="categories"
+                                        value="{{.ID}}"
+                                    >
+
+                                    <span>
+                                        {{.Name}}
+                                    </span>
+
+                                </label>
+
+                            {{end}}
+
+                        {{end}}
+
+                    </fieldset>
+
+                    <fieldset class="post-form__categories">
+
+                        <legend>Genre</legend>
+
+                        {{range .Categories}}
+
+                            {{if eq .Kind "genre"}}
+
+                                <label class="post-form__category">
+
+                                    <input
+                                        type="checkbox"
+                                        name="categories"
+                                        value="{{.ID}}"
+                                    >
+
+                                    <span>
+                                        {{.Name}}
+                                    </span>
+
+                                </label>
+
+                            {{end}}
+
+                        {{end}}
+
+                    </fieldset>
+
+                    <fieldset class="post-form__categories">
+
+                        <legend>Theme</legend>
+
+                        {{range .Categories}}
+
+                            {{if eq .Kind "theme"}}
+
+                                <label class="post-form__category">
+
+                                    <input
+                                        type="checkbox"
+                                        name="categories"
+                                        value="{{.ID}}"
+                                    >
+
+                                    <span>
+                                        {{.Name}}
+                                    </span>
+
+                                </label>
+
+                            {{end}}
+
+                        {{end}}
+
+                    </fieldset>
+
+                    <fieldset class="post-form__categories">
+
+                        <legend>Discussion</legend>
+
+                        {{range .Categories}}
+
+                            {{if eq .Kind "discussion"}}
+
+                                <label class="post-form__category">
+
+                                    <input
+                                        type="checkbox"
+                                        name="categories"
+                                        value="{{.ID}}"
+                                    >
+
+                                    <span>
+                                        {{.Name}}
+                                    </span>
+
+                                </label>
+
+                            {{end}}
+
+                        {{end}}
+
+                    </fieldset>
+
+                </div>
+
+                <button type="submit">
+                    Create Post
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+    {{template "footer" .}}
+
+</body>
+</html>

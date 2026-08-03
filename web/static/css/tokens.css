@@ -1,0 +1,114 @@
+:root {
+  /* ── Colors ── */
+  --color-bg-base:        #080810;
+  --color-bg-surface:     #0f0f1a;
+  --color-bg-elevated:    #161625;
+
+  --color-border:         #2a1f3d;
+  --color-border-subtle:  #1a1228;
+
+  --color-text-primary:   #e8e0f0;
+  --color-text-secondary: #9980bb;
+  --color-text-muted:     #55446a;
+
+  --color-accent-purple:        #b44fff;
+  --color-accent-purple-hover:  #c970ff;
+  --color-accent-pink:          #ff2d78;
+  --color-accent-pink-hover:    #ff5294;
+  --color-accent-cyan:          #00fff5;
+  --color-accent-cyan-hover:    #66fff9;
+
+  --color-like:           #ff2d78;
+  --color-like-hover:     #ff5294;
+  --color-dislike:        #55446a;
+  --color-dislike-hover:  #6b5580;
+
+  --color-success:        #00fff5;
+  --color-error:          #ff2d78;
+  --color-warning:        #ffb347;
+
+  /* ── Background pattern (subtle dot grid) ── */
+  --bg-pattern:
+    radial-gradient(circle, #2a1f3d 1px, transparent 1px);
+  --bg-pattern-size: 28px 28px;
+
+  /* ── Glows ── */
+  --glow-purple: 0 0 16px rgba(180, 79, 255, 0.4);
+  --glow-pink:   0 0 16px rgba(255, 45, 120, 0.4);
+  --glow-cyan:   0 0 16px rgba(0, 255, 245, 0.35);
+
+  /* ── Typography ── */
+  --font-sans:
+    "Segoe UI", "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+
+  --font-mono:
+    "JetBrains Mono", "Fira Code",
+    "Cascadia Code", "Consolas", monospace;
+
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-md:   1.125rem;
+  --font-size-lg:   1.25rem;
+  --font-size-xl:   1.5rem;
+  --font-size-2xl:  1.875rem;
+  --font-size-3xl:  2.25rem;
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:   1.25;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ── Spacing (base unit: 4px) ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ── Border radius ── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.8);
+
+  /* ── Transitions ── */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms ease;
+
+  /* ── Layout ── */
+  --container-max: 860px;
+  --nav-height:    56px;
+
+  /* ── Z-index ── */
+  --z-nav:     100;
+  --z-overlay: 200;
+  --z-modal:   300;
+}
+
+/* ── Base background with dot grid pattern ── */
+body {
+  background-color: var(--color-bg-base);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-pattern-size);
+}

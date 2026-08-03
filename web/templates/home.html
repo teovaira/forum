@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Forum – Home</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/tokens.css"
+    >
+<link
+    rel="icon"
+    type="image/png"
+    href="/static/images/favicon.png"
+>
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+    {{template "header" .}}
+
+    <main class="container home-page">
+
+        <section
+            class="home-hero"
+            aria-labelledby="home-title"
+        >
+            <h1
+                id="home-title"
+                class="home-hero__title"
+            >
+                Anime Forum
+            </h1>
+
+            <p class="home-hero__subtitle">
+                Discuss anime, manga, characters, theories and everything otaku.
+            </p>
+        </section>
+
+        <nav
+            class="filter-nav"
+            aria-label="Browse categories"
+        >
+            <a
+                href="/"
+                class="filter-nav__link{{if eq .ActiveFilter ""}} filter-nav__link--active{{end}}"
+            >
+                All
+            </a>
+
+            {{range .Categories}}
+                <a
+                    href="/?category={{.ID}}"
+                    class="filter-nav__link{{if eq $.ActiveFilter (printf "category:%d" .ID)}} filter-nav__link--active{{end}}"
+                >
+                    {{.Name}}
+                </a>
+            {{end}}
+        </nav>
+
+        {{if .ActiveFilter}}
+            <p class="active-filter">
+                Filter: {{.ActiveFilter}}
+            </p>
+        {{end}}
+
+        <section
+            class="post-list"
+            aria-label="Forum posts"
+        >
+
+            {{range .Posts}}
+
+                <article class="post post--summary">
+
+                    <div
+                        class="post__avatar"
+                        aria-hidden="true"
+                    >
+                        ✦
+                    </div>
+
+                    <div class="post__content">
+
+                        <div class="post__heading">
+
+                            <div class="post__heading-content">
+
+                                <h2 class="post__title">
+                                    <a href="/posts/{{.ID}}">
+                                        {{.Title}}
+                                    </a>
+                                </h2>
+
+                                <p class="post__meta">
+                                    by
+
+                                    <span class="post__author">
+                                        {{.Author}}
+                                    </span>
+
+                                    <span aria-hidden="true">
+                                        •
+                                    </span>
+
+                                    <time
+                                        datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
+                                    >
+                                        {{.CreatedAt.Format "2006-01-02"}}
+                                    </time>
+                                </p>
+
+                            </div>
+
+                            <span
+                                class="post__bookmark"
+                                aria-hidden="true"
+                            >
+                                ♡
+                            </span>
+
+                        </div>
+
+                        <p class="post__body">{{- .Body -}}</p>
+
+                        <div class="post__bottom">
+
+                            <ul class="post__categories">
+
+                                {{range .Categories}}
+                                    <li>
+                                        <a
+                                            href="/?category={{.ID}}"
+                                            class="category-tag"
+                                        >
+                                            #{{.Name}}
+                                        </a>
+                                    </li>
+                                {{end}}
+
+                            </ul>
+
+                            <div
+                                class="post__stats"
+                                aria-label="Post reactions"
+                            >
+                                <span class="post__stat post__stat--like">
+                                    ♡ {{.Likes}}
+                                </span>
+
+                                <span class="post__stat post__stat--dislike">
+                                    ♡ {{.Dislikes}}
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            {{else}}
+
+                <section
+                    class="empty-state"
+                    aria-labelledby="empty-state-title"
+                >
+                    <div
+                        class="empty-state__icon"
+                        aria-hidden="true"
+                    >
+                        ✦
+                    </div>
+
+                    <h2
+                        id="empty-state-title"
+                        class="empty-state__title"
+                    >
+                        No posts yet.
+                    </h2>
+
+                    <p class="empty-state__text">
+                        Start the first discussion and bring the forum online.
+                    </p>
+                </section>
+
+            {{end}}
+
+        </section>
+
+    </main>
+
+    {{template "footer" .}}
+
+</body>
+</html>

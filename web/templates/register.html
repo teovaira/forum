@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Forum – Register</title>
+
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body class="auth-page">
+
+{{template "simple-header" .}}
+
+<main class="container auth-page__main">
+
+    <section class="auth-panel" aria-labelledby="register-title">
+
+        <div class="auth-panel__header">
+
+            <h1
+                id="register-title"
+                class="auth-panel__title"
+            >
+                Register
+            </h1>
+
+            <p class="auth-panel__subtitle">
+                Create your account and join the anime community.
+            </p>
+
+        </div>
+
+        {{if .ErrorMessage}}
+            <p
+                class="auth-form__error"
+                role="alert"
+            >
+                {{.ErrorMessage}}
+            </p>
+        {{end}}
+
+        <form
+            method="post"
+            action="/register"
+            class="auth-form"
+        >
+
+            <label class="auth-form__field">
+
+                <span>Email</span>
+
+                <input
+                    type="email"
+                    name="email"
+                    autocomplete="email"
+                    required
+                >
+
+            </label>
+
+            <label class="auth-form__field">
+
+                <span>Username</span>
+
+                <input
+                    type="text"
+                    name="username"
+                    autocomplete="username"
+                    required
+                >
+
+            </label>
+
+            <label class="auth-form__field">
+
+                <span>Password</span>
+
+                <input
+                    type="password"
+                    name="password"
+                    autocomplete="new-password"
+                    required
+                >
+
+            </label>
+
+            <button type="submit">
+                Register
+            </button>
+
+        </form>
+
+        <p class="auth-panel__switch">
+
+            Already have an account?
+
+            <a href="/login">
+                Log In
+            </a>
+
+        </p>
+
+    </section>
+
+</main>
+
+{{template "footer" .}}
+
+</body>
+</html>
